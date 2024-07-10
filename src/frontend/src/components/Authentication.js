@@ -46,9 +46,13 @@ const Auth = () => {
         setMessage("Password must at least be 6 characters");
       }
     } catch (err) {
-      setMessageStyle("text-red-600");
-      setMessage("Invalid email");
-      console.log(err);
+      if (err.code === "auth/email-already-in-use") {
+        setMessageStyle("text-red-600");
+        setMessage("Email already used. Please login instead.");
+      } else {
+        setMessageStyle("text-red-600");
+        setMessage("Invalid email");
+      }
     }
   };
 
