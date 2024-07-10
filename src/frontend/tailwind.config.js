@@ -6,7 +6,8 @@ module.exports = {
   theme: {
     extend: { 
       fontFamily: { 
-          "title": ["Permanent Marker", 'sans-serif'] 
+          "title": ["Permanent Marker", 'sans-serif'], 
+          "normal": ["Poppins", 'sans-serif'] 
       } 
   },
   },
