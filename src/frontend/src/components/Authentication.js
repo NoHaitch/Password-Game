@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { FaUser, FaLock } from "react-icons/fa";
 import { AiOutlineRedo } from "react-icons/ai";
+import { twMerge } from "tailwind-merge";
 
-import { auth, googleProvider } from "../config/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
-import { twMerge } from "tailwind-merge";
+import { auth, googleProvider } from "../config/firebase";
 
-const Auth = () => {
+const Authentication = () => {
   const [toggleLogin, setToggleLogin] = useState("flex");
   const [toggleRegister, setToggleRegister] = useState("hidden");
 
@@ -33,9 +33,8 @@ const Auth = () => {
             registerEmail,
             registerPassword
           ).then(() => {
-            changeToLogin();
             setMessageStyle("text-green-600");
-            setMessage("Register Succeded. Please login again!");
+            setMessage("Register Succeded. Logging in...");
           });
         } else {
           setMessageStyle("text-red-600");
@@ -59,6 +58,8 @@ const Auth = () => {
   const signIn = async () => {
     try {
       await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      setMessageStyle("text-green-600");
+      setMessage("Login Succesfull");
     } catch (err) {
       setMessageStyle("text-red-600");
       setMessage("Wrong Password or Email");
@@ -68,6 +69,8 @@ const Auth = () => {
   const signInWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
+      setMessageStyle("text-green-600");
+      setMessage("Google Authentication Succesfull");
     } catch (err) {
       setMessageStyle("text-red-600");
       setMessage("Google Authentication Failed");
@@ -245,4 +248,4 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default Authentication;
