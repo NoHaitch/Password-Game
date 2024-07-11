@@ -17,6 +17,11 @@ function Main() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [resetConfirmation, setResetConfirmation] = useState(false);
+  const [newGameDialog, setNewGameDialog] = useState(false);
+  const [saveGameDialog, setSaveGameDialog] = useState(false);
+  const [loadGameDialog, setLoadGameDialog] = useState(false);
+
   const [playing, setPlaying] = useState(false);
   const [difficultyStyle, setDifficultyStyle] = useState("");
   const [difficulty, setDifficulty] = useState("None");
@@ -85,12 +90,14 @@ function Main() {
                   <button
                     type="button"
                     className="focus:outline-none text-white bg-yellow-600 hover:bg-yellow-700 focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 focus:ring-yellow-900"
+                    onClick={() => setSaveGameDialog(true)}
                   >
                     Save
                   </button>
                   <button
                     type="button"
                     className="focus:outline-none text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 bg-red-600 hover:bg-red-700 focus:ring-red-900"
+                    onClick={() => setLoadGameDialog(true)}
                   >
                     Load
                   </button>
@@ -98,6 +105,7 @@ function Main() {
                 <button
                   type="button"
                   className="focus:outline-none text-white focus:ring-4  font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 bg-green-600 hover:bg-green-700 focus:ring-green-800"
+                  onClick={() => setNewGameDialog(true)}
                 >
                   New Game
                 </button>
@@ -118,6 +126,102 @@ function Main() {
         </aside>
       </div>
       <div className="flex flex-col justify-center items-center pl-64 w-screen mt-4">
+        {newGameDialog ? (
+          <div className="absolute flex top-0 px-32 w-full h-screen justify-center items-center">
+            <div className="w-full h-full bg-black opacity-45"></div>
+            <div className="absolute w-[400px] h-[150px] bg-[#1E1F20] rounded-md flex flex-col items-center p-2 text-white">
+              <h1 className="mt-4">Choose a difficulty</h1>
+              <div className="flex flex-row m-4">
+                <button
+                  type="button"
+                  className="text-black bg-gradient-to-r from-teal-400 via-teal-500 to-teal-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-teal-800 shadow-lg shadow-teal-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+                  onClick={() => {
+                    setDifficulty("Easy");
+                    setDifficultyStyle("text-green-400");
+                    setNewGameDialog(false);
+                    if (playing) {
+                      setResetConfirmation(true);
+                    } else {
+                      setPlaying(true);
+                    }
+                  }}
+                >
+                  Easy
+                </button>
+                <button
+                  type="button"
+                  className="text-black bg-gradient-to-r from-lime-200 via-lime-400 to-lime-500 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-lime-800 shadow-lg shadow-lime-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+                  onClick={() => {
+                    setDifficulty("Medium");
+                    setDifficultyStyle("text-blue-400");
+                    setNewGameDialog(false);
+                    if (playing) {
+                      setResetConfirmation(true);
+                    } else {
+                      setPlaying(true);
+                    }
+                  }}
+                >
+                  Medium
+                </button>
+                <button
+                  type="button"
+                  className="text-black bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-800 shadow-lg shadow-red-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+                  onClick={() => {
+                    setDifficulty("Hard");
+                    setDifficultyStyle("text-red-400");
+                    setNewGameDialog(false);
+
+                    if (playing) {
+                      setResetConfirmation(true);
+                    } else {
+                      setPlaying(true);
+                    }
+                  }}
+                >
+                  Hard
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {resetConfirmation ? (
+          <div className="absolute flex top-0 px-32 w-full h-screen justify-center items-center">
+            <div className="w-full h-full bg-black opacity-45"></div>
+            <div className="absolute w-[400px] h-[150px] bg-[#1E1F20] rounded-md flex flex-col items-center p-2 text-white">
+              <div className="mt-4 text-center">
+                <h1>You are currently playing.</h1>
+                <h1>All current progress will disapear!</h1>
+              </div>
+              <div className="flex flex-row m-4">
+                <button
+                  type="button"
+                  className="text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
+                  onClick={() => {
+                    setNewGameDialog(false);
+                    setLoadGameDialog(false);
+                    setResetConfirmation(false);
+                  }}
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  className="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+                  onClick={() => {
+                    setNewGameDialog(false);
+                    setLoadGameDialog(false);
+                    setResetConfirmation(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <Title />
         {!playing ? (
           <div className="text-gray-400 text-center m-4">
