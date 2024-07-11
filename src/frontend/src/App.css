@@ -1,4 +1,5 @@
 body {
   background-color: #131314;
   font-family: "Poppins", sans-serif;
+  overflow-x: hidden;
 }
