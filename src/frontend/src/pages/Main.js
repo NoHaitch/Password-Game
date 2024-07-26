@@ -25,6 +25,8 @@ function Main() {
   const [playing, setPlaying] = useState(false);
   const [difficultyStyle, setDifficultyStyle] = useState("");
   const [difficulty, setDifficulty] = useState("None");
+  const [newDifficulty, setNewDifficulty] = useState("");
+  const [newDifficultyStyle, setNewDifficultyStyle] = useState("");
 
   useEffect(() => {
     const authenticated = onAuthStateChanged(auth, (user) => {
@@ -136,13 +138,15 @@ function Main() {
                   type="button"
                   className="text-black bg-gradient-to-r from-teal-400 via-teal-500 to-teal-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-teal-800 shadow-lg shadow-teal-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
                   onClick={() => {
-                    setDifficulty("Easy");
-                    setDifficultyStyle("text-green-400");
                     setNewGameDialog(false);
                     if (playing) {
                       setResetConfirmation(true);
+                      setNewDifficulty("Easy");
+                      setNewDifficultyStyle("text-green-400");
                     } else {
                       setPlaying(true);
+                      setDifficulty("Easy");
+                      setDifficultyStyle("text-green-400");
                     }
                   }}
                 >
@@ -152,13 +156,15 @@ function Main() {
                   type="button"
                   className="text-black bg-gradient-to-r from-lime-200 via-lime-400 to-lime-500 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-lime-800 shadow-lg shadow-lime-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
                   onClick={() => {
-                    setDifficulty("Medium");
-                    setDifficultyStyle("text-blue-400");
                     setNewGameDialog(false);
                     if (playing) {
                       setResetConfirmation(true);
+                      setNewDifficulty("Medium");
+                      setNewDifficultyStyle("text-blue-400");
                     } else {
                       setPlaying(true);
+                      setDifficulty("Medium");
+                      setDifficultyStyle("text-blue-400");
                     }
                   }}
                 >
@@ -168,14 +174,15 @@ function Main() {
                   type="button"
                   className="text-black bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-800 shadow-lg shadow-red-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
                   onClick={() => {
-                    setDifficulty("Hard");
-                    setDifficultyStyle("text-red-400");
                     setNewGameDialog(false);
-
                     if (playing) {
                       setResetConfirmation(true);
+                      setNewDifficulty("Hard");
+                      setNewDifficultyStyle("text-red-400");
                     } else {
                       setPlaying(true);
+                      setDifficulty("Hard");
+                      setDifficultyStyle("text-red-400");
                     }
                   }}
                 >
@@ -202,6 +209,8 @@ function Main() {
                     setNewGameDialog(false);
                     setLoadGameDialog(false);
                     setResetConfirmation(false);
+                    setDifficulty(newDifficulty);
+                    setDifficultyStyle(newDifficultyStyle);
                   }}
                 >
                   Confirm
