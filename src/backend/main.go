@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/rules"
 	"log"
 	"net/http"
 	"os"
@@ -36,20 +37,21 @@ func main() {
 	})
 
 	// Main Endpoint -> Check the password
-	r.GET("/password", func(c *gin.Context) {
-		source := c.Query("source")
-		target := c.Query("target")
+	r.GET("/main", func(c *gin.Context) {
+		password := c.Query("password")
 
 		// Check for bad query
-		if source == "" || target == "" {
+		if password == "" {
 			PrintlnRed("[Main] Request Failed, Empty Query")
 			c.JSON(http.StatusInternalServerError, "")
 
 		} else {
 			// Main Logic
+			result, accepted := rules.TestPassword(password)
 
 			c.JSON(http.StatusOK, gin.H{
-				"results": "temp",
+				"results":  result,
+				"accepted": accepted,
 			})
 		}
 	})
