@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import Textarea from "react-expanding-textarea";
 
-const PasswordField = () => {
+function PasswordField({ onPasswordChange }) {
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    onPasswordChange(password);
+  }, [password, onPasswordChange]);
+
   const textareaRef = useRef(null);
 
   const [count, setCount] = useState(0);
@@ -25,7 +31,10 @@ const PasswordField = () => {
           name="pet[notes]"
           placeholder="Password..."
           ref={textareaRef}
-          onChange={(e) => setCount(e.target.value.length)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setCount(e.target.value.length);
+          }}
         />
       </div>
       <p className="text-white absolute mr-[-550px] mb-[-20px] text-left">
@@ -33,6 +42,6 @@ const PasswordField = () => {
       </p>
     </div>
   );
-};
+}
 
 export default PasswordField;

@@ -19,15 +19,25 @@ import History from "../components/History";
 function Main() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [score, setScore] = useState(0);
+  const [password, setPassword] = useState("");
   const [HighestLevel, setHighestLevel] = useState(1);
+  const [constraints, setConstraints] = useState(Array(20).fill(false));
+  const [currentGame, setCurrentGame] = useState({
+    rule1Var: 0,
+    rule5Var: 0,
+  });
 
-  const [notReadyPopup, setNotReadyPopup] = useState(false);
-  const [winPopup, setWinPopup] = useState(false);
-  const [losePopup, setLosePopup] = useState(false);
-  const [leaderboardPopup, setLeaderboardPopup] = useState(false);
-  const [HistoryPopup, setHistoryPopup] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
+
+  const [popup, setPopup] = useState({
+    notReady: false,
+    win: false,
+    lose: false,
+    leaderboard: false,
+    history: false,
+  });
 
   const [resetConfirmation, setResetConfirmation] = useState(false);
   const [newGameDialog, setNewGameDialog] = useState(false);
@@ -36,7 +46,7 @@ function Main() {
 
   const [playing, setPlaying] = useState(false);
   const [difficultyStyle, setDifficultyStyle] = useState("");
-  const [difficulty, setDifficulty] = useState("None");
+  const [difficulty, setDifficulty] = useState("");
   const [newDifficulty, setNewDifficulty] = useState("");
   const [newDifficultyStyle, setNewDifficultyStyle] = useState("");
 
@@ -53,6 +63,53 @@ function Main() {
     return () => authenticated();
   }, [navigate]);
 
+  useEffect(() => {
+    let interval;
+
+    if (playing && password) {
+      interval = setInterval(() => {
+        fetch("http://localhost:8080/main", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            password,
+            rule1Var: currentGame.rule1Var,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data.results);
+
+            setConstraints(data.results || Array(20).fill(false));
+
+            for (let i = 0; i <= 20; i++) {
+              if (i === HighestLevel) {
+                setHighestLevel(HighestLevel + 1);
+              }
+              if (!data.results[i]) {
+                break;
+              }
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [playing, password]);
+
+  useEffect(() => {
+    if (difficulty !== "") {
+      handleGameStart();
+    }
+  }, [difficulty]);
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -62,9 +119,23 @@ function Main() {
   };
 
   const resetNonGamePopup = () => {
-    setHistoryPopup(false);
-    setLeaderboardPopup(false);
-    setNotReadyPopup(false);
+    setPopup({
+      ...popup,
+      notReady: false,
+      leaderboard: false,
+      history: false,
+    });
+  };
+
+  const handleGameStart = () => {
+    if (difficulty === "Easy") {
+      setCurrentGame({ ...currentGame, rule1Var: 6 });
+    } else if (difficulty === "Medium") {
+      setCurrentGame({ ...currentGame, rule1Var: 12 });
+    } else {
+      setCurrentGame({ ...currentGame, rule1Var: 18 });
+    }
+    setLoadingData(false);
   };
 
   if (loading) {
@@ -112,7 +183,7 @@ function Main() {
                     className="focus:outline-none text-white bg-yellow-600 hover:bg-yellow-700 focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 focus:ring-yellow-900"
                     onClick={() => {
                       resetNonGamePopup();
-                      setNotReadyPopup(true);
+                      setPopup({ ...popup, notReady: true });
                     }}
                   >
                     Save
@@ -122,7 +193,7 @@ function Main() {
                     className="focus:outline-none text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 bg-red-600 hover:bg-red-700 focus:ring-red-900"
                     onClick={() => {
                       resetNonGamePopup();
-                      setNotReadyPopup(true);
+                      setPopup({ ...popup, notReady: true });
                     }}
                   >
                     Load
@@ -142,7 +213,7 @@ function Main() {
                 className="flex flex-row items-center cursor-pointer"
                 onClick={() => {
                   resetNonGamePopup();
-                  setLeaderboardPopup(true);
+                  setPopup({ ...popup, leaderboard: true });
                 }}
               >
                 <MdOutlineLeaderboard className="m-2 size-6" /> Leaderboard
@@ -151,7 +222,7 @@ function Main() {
                 className="flex flex-row items-center cursor-pointer"
                 onClick={() => {
                   resetNonGamePopup();
-                  setHistoryPopup(true);
+                  setPopup({ ...popup, history: true });
                 }}
               >
                 <LuHistory className="m-2 size-6" /> History
@@ -160,6 +231,7 @@ function Main() {
                 <a
                   href="https://github.com/NoHaitch/Password-Game/blob/main/README.md"
                   target="_blank"
+                  rel="noreferrer"
                   className="flex flex-row items-center "
                 >
                   <IoIosInformationCircleOutline className="m-2 size-6" /> About
@@ -281,77 +353,159 @@ function Main() {
           </div>
         ) : (
           <>
-            <PasswordField />
+            <PasswordField
+              onPasswordChange={(newPassword) => setPassword(newPassword)}
+            />
             {1 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="1" state="false" />
+              <ConstraintBlock
+                ruleNumber="1"
+                state={constraints[0]}
+                data={currentGame}
+              />
             )}
             {2 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="2" state="false" />
+              <ConstraintBlock
+                ruleNumber="2"
+                state={constraints[1]}
+                data={currentGame}
+              />
             )}
             {3 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="3" state="false" />
+              <ConstraintBlock
+                ruleNumber="3"
+                state={constraints[2]}
+                data={currentGame}
+              />
             )}
             {4 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="4" state="false" />
+              <ConstraintBlock
+                ruleNumber="4"
+                state={constraints[3]}
+                data={currentGame}
+              />
             )}
             {5 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="5" state="false" />
+              <ConstraintBlock
+                ruleNumber="5"
+                state={constraints[4]}
+                data={currentGame}
+              />
             )}
             {6 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="6" state="false" />
+              <ConstraintBlock
+                ruleNumber="6"
+                state={constraints[5]}
+                data={currentGame}
+              />
             )}
             {7 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="7" state="false" />
+              <ConstraintBlock
+                ruleNumber="7"
+                state={constraints[6]}
+                data={currentGame}
+              />
             )}
             {8 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="8" state="false" />
+              <ConstraintBlock
+                ruleNumber="8"
+                state={constraints[7]}
+                data={currentGame}
+              />
             )}
             {9 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="9" state="false" />
+              <ConstraintBlock
+                ruleNumber="9"
+                state={constraints[8]}
+                data={currentGame}
+              />
             )}
             {10 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="10" state="false" />
+              <ConstraintBlock
+                ruleNumber="10"
+                state={constraints[9]}
+                data={currentGame}
+              />
             )}
             {11 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="11" state="false" />
+              <ConstraintBlock
+                ruleNumber="11"
+                state={constraints[10]}
+                data={currentGame}
+              />
             )}
             {12 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="12" state="false" />
+              <ConstraintBlock
+                ruleNumber="12"
+                state={constraints[11]}
+                data={currentGame}
+              />
             )}
             {13 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="13" state="false" />
+              <ConstraintBlock
+                ruleNumber="13"
+                state={constraints[12]}
+                data={currentGame}
+              />
             )}
             {14 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="14" state="false" />
+              <ConstraintBlock
+                ruleNumber="14"
+                state={constraints[13]}
+                data={currentGame}
+              />
             )}
             {15 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="15" state="false" />
+              <ConstraintBlock
+                ruleNumber="15"
+                state={constraints[14]}
+                data={currentGame}
+              />
             )}
             {16 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="16" state="false" />
+              <ConstraintBlock
+                ruleNumber="16"
+                state={constraints[15]}
+                data={currentGame}
+              />
             )}
             {17 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="17" state="false" />
+              <ConstraintBlock
+                ruleNumber="17"
+                state={constraints[16]}
+                data={currentGame}
+              />
             )}
             {18 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="18" state="false" />
+              <ConstraintBlock
+                ruleNumber="18"
+                state={constraints[17]}
+                data={currentGame}
+              />
             )}
             {19 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="19" state="false" />
+              <ConstraintBlock
+                ruleNumber="19"
+                state={constraints[18]}
+                data={currentGame}
+              />
             )}
             {20 <= HighestLevel && (
-              <ConstraintBlock ruleNumber="20" state="false" />
+              <ConstraintBlock
+                ruleNumber="20"
+                state={constraints[19]}
+                data={currentGame}
+              />
             )}
           </>
         )}
 
-        {losePopup && (
+        {popup.lose && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
                 class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setLosePopup(false)}
+                onClick={() => setPopup({ ...popup, lose: false })}
               >
                 <svg
                   class="w-3 h-3"
@@ -377,13 +531,13 @@ function Main() {
           </div>
         )}
 
-        {winPopup && (
+        {popup.win && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
                 class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setWinPopup(false)}
+                onClick={() => setPopup({ ...popup, win: false })}
               >
                 <svg
                   class="w-3 h-3"
@@ -413,13 +567,13 @@ function Main() {
           </div>
         )}
 
-        {notReadyPopup && (
+        {popup.notReady && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
                 class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setNotReadyPopup(false)}
+                onClick={() => setPopup({ ...popup, notReady: false })}
               >
                 <svg
                   class="w-3 h-3"
@@ -442,13 +596,13 @@ function Main() {
           </div>
         )}
 
-        {leaderboardPopup && (
+        {popup.leaderboard && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
                 class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setLeaderboardPopup(false)}
+                onClick={() => setPopup({ ...popup, leaderboard: false })}
               >
                 <svg
                   class="w-3 h-3"
@@ -471,14 +625,14 @@ function Main() {
           </div>
         )}
 
-        {HistoryPopup && (
+        {popup.history && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[800px]">
               <button
                 type="button"
                 class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
                 onClick={() => {
-                  setHistoryPopup(false);
+                  setPopup({ ...popup, history: false });
                 }}
               >
                 <svg

@@ -1,12 +1,11 @@
-import React from "react";
-import { twMerge } from "tailwind-merge";
+import React, { useEffect } from "react";
 import { IoCheckmark, IoClose } from "react-icons/io5";
 
-const ConstraintBlock = (props) => {
+const ConstraintBlock = (props) => {  
   var content = "";
   switch (props.ruleNumber) {
     case "1":
-      content = "Your password must be at least X characters";
+      content = `Your password must be at least ${props.data.rule1Var} characters`;
       break;
     case "2":
       content = "Your password must include a number";
@@ -94,7 +93,7 @@ const ConstraintBlock = (props) => {
       break;
   }
 
-  if (props.state === "false") {
+  if (props.state === false) {
     return (
       <div className="text-gray-400 w-[500px] rounded-lg border-2 bg-red-400 border-red-600 m-2">
         <h1 className="flex flex-row  items-center text-black px-1 py-2 text-xl">
