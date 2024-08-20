@@ -28,6 +28,13 @@ func TestPassword(password string) ([]bool, bool) {
 		rule11(password),                      // Rule 11 – 🥚 This is my chicken Paul. He hasn’t hatched yet. Please put him in your password and keep him safe
 		rule12(password, "captcha"),           // Rule 12 – Your password must include this CAPTCHA
 		rule13(numbers),                       // Rule 13 – Your password must include a leap year
+		rule14(password, 0, 0),                // Rule 14 – 🐔 Paul has hatched ! Please don’t forget to feed him. He eats X 🐛 every Y second
+		rule15(password, []string{"abcde"}),   // Rule 15 – A sacrifice must be made. Pick X letters that you will no longer be able to use
+		rule16(password),                      // Rule 16 – Your password must contain one of the following words: I want IRK | I need IRK | I love IRK
+		rule17(password, 0.1, numbers),        // Rule 17 – At least X% of your password must be in digits
+		rule18(password, numbers),             // Rule 18 – Your password must include the length of your password
+		rule19(password),                      // Rule 19 – The length of your password must be a prime number
+		rule20(password),                      // Rule 20 – Your password must include the current time (hour:minute)
 	}
 
 	// Check if all rules are met
