@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineLeaderboard } from "react-icons/md";
+import { twMerge } from "tailwind-merge";
+
+import { TbConfetti } from "react-icons/tb";
 import { LuHistory } from "react-icons/lu";
 import { IoIosInformationCircleOutline } from "react-icons/io";
-import { twMerge } from "tailwind-merge";
 
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
@@ -11,11 +13,21 @@ import { auth } from "../config/firebase";
 import Title from "../components/Title";
 import PasswordField from "../components/PasswordField";
 import ConstraintBlock from "../components/ConstraintBlock";
+import Leaderboard from "../components/Leaderboard";
+import History from "../components/History";
 
 function Main() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [score, setScore] = useState(0);
+  const [HighestLevel, setHighestLevel] = useState(1);
+
+  const [notReadyPopup, setNotReadyPopup] = useState(false);
+  const [winPopup, setWinPopup] = useState(false);
+  const [losePopup, setLosePopup] = useState(false);
+  const [leaderboardPopup, setLeaderboardPopup] = useState(false);
+  const [HistoryPopup, setHistoryPopup] = useState(false);
 
   const [resetConfirmation, setResetConfirmation] = useState(false);
   const [newGameDialog, setNewGameDialog] = useState(false);
@@ -47,6 +59,12 @@ function Main() {
     } catch (err) {
       console.log(err);
     }
+  };
+
+  const resetNonGamePopup = () => {
+    setHistoryPopup(false);
+    setLeaderboardPopup(false);
+    setNotReadyPopup(false);
   };
 
   if (loading) {
@@ -92,14 +110,20 @@ function Main() {
                   <button
                     type="button"
                     className="focus:outline-none text-white bg-yellow-600 hover:bg-yellow-700 focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 focus:ring-yellow-900"
-                    onClick={() => setSaveGameDialog(true)}
+                    onClick={() => {
+                      resetNonGamePopup();
+                      setNotReadyPopup(true);
+                    }}
                   >
                     Save
                   </button>
                   <button
                     type="button"
                     className="focus:outline-none text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 bg-red-600 hover:bg-red-700 focus:ring-red-900"
-                    onClick={() => setLoadGameDialog(true)}
+                    onClick={() => {
+                      resetNonGamePopup();
+                      setNotReadyPopup(true);
+                    }}
                   >
                     Load
                   </button>
@@ -114,14 +138,32 @@ function Main() {
               </li>
             </ul>
             <ul>
-              <li className="flex flex-row items-center">
+              <li
+                className="flex flex-row items-center cursor-pointer"
+                onClick={() => {
+                  resetNonGamePopup();
+                  setLeaderboardPopup(true);
+                }}
+              >
                 <MdOutlineLeaderboard className="m-2 size-6" /> Leaderboard
               </li>
-              <li className="flex flex-row items-center">
+              <li
+                className="flex flex-row items-center cursor-pointer"
+                onClick={() => {
+                  resetNonGamePopup();
+                  setHistoryPopup(true);
+                }}
+              >
                 <LuHistory className="m-2 size-6" /> History
               </li>
-              <li className="flex flex-row items-center">
-                <IoIosInformationCircleOutline className="m-2 size-6" /> About
+              <li className="flex flex-row items-center cursor-pointer">
+                <a
+                  href="https://github.com/NoHaitch/Password-Game/blob/main/README.md"
+                  target="_blank"
+                  className="flex flex-row items-center "
+                >
+                  <IoIosInformationCircleOutline className="m-2 size-6" /> About
+                </a>
               </li>
             </ul>
           </div>
@@ -240,15 +282,224 @@ function Main() {
         ) : (
           <>
             <PasswordField />
-            <ConstraintBlock ruleNumber="15" state="false" />
-            <ConstraintBlock ruleNumber="14" state="false" />
-            <ConstraintBlock ruleNumber="2" state="true" />
-            <ConstraintBlock ruleNumber="1" state="true" />
-            <ConstraintBlock ruleNumber="1" state="true" />
-            <ConstraintBlock ruleNumber="1" state="true" />
-            <ConstraintBlock ruleNumber="1" state="true" />
-            <ConstraintBlock ruleNumber="1" state="true" />
+            {1 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="1" state="false" />
+            )}
+            {2 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="2" state="false" />
+            )}
+            {3 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="3" state="false" />
+            )}
+            {4 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="4" state="false" />
+            )}
+            {5 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="5" state="false" />
+            )}
+            {6 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="6" state="false" />
+            )}
+            {7 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="7" state="false" />
+            )}
+            {8 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="8" state="false" />
+            )}
+            {9 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="9" state="false" />
+            )}
+            {10 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="10" state="false" />
+            )}
+            {11 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="11" state="false" />
+            )}
+            {12 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="12" state="false" />
+            )}
+            {13 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="13" state="false" />
+            )}
+            {14 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="14" state="false" />
+            )}
+            {15 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="15" state="false" />
+            )}
+            {16 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="16" state="false" />
+            )}
+            {17 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="17" state="false" />
+            )}
+            {18 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="18" state="false" />
+            )}
+            {19 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="19" state="false" />
+            )}
+            {20 <= HighestLevel && (
+              <ConstraintBlock ruleNumber="20" state="false" />
+            )}
           </>
+        )}
+
+        {losePopup && (
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
+              <button
+                type="button"
+                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => setLosePopup(false)}
+              >
+                <svg
+                  class="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+              <h1 className="m-2 text-xl">You Lose!</h1>
+              <h1 className="m-2 text-gray-400 text-xs">
+                Use the side menu to make a new game
+              </h1>
+            </div>
+          </div>
+        )}
+
+        {winPopup && (
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
+              <button
+                type="button"
+                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => setWinPopup(false)}
+              >
+                <svg
+                  class="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+              <div className="flex flex-row justify-center items-center">
+                <TbConfetti className="size-[24px] text-red-500" />
+                <h1 className="m-2 text-xl">You Win!</h1>
+              </div>
+              <h1 className="m-2">Score: {score}</h1>
+              <h1 className="m-2 text-gray-400 text-xs">
+                Use the side menu to make a new game
+              </h1>
+            </div>
+          </div>
+        )}
+
+        {notReadyPopup && (
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
+              <button
+                type="button"
+                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => setNotReadyPopup(false)}
+              >
+                <svg
+                  class="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+              <h1 className="m-2 text-xl">This Feature is not ready yet!</h1>
+            </div>
+          </div>
+        )}
+
+        {leaderboardPopup && (
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
+              <button
+                type="button"
+                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => setLeaderboardPopup(false)}
+              >
+                <svg
+                  class="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+              <Leaderboard />
+            </div>
+          </div>
+        )}
+
+        {HistoryPopup && (
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[800px]">
+              <button
+                type="button"
+                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => {
+                  setHistoryPopup(false);
+                }}
+              >
+                <svg
+                  class="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+              <History />
+            </div>
+          </div>
         )}
       </div>
     </div>
