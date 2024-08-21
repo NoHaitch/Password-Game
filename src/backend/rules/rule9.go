@@ -1,17 +1,13 @@
 package rules
 
 import (
-	"fmt"
 	"strings"
 )
 
 // Rule 9 – The Roman numerals in your password should multiply to X
-func rule9(romanNumerals []string, x int) bool {
-	fmt.Print("Rule 9: ")
-	fmt.Print(productOfRomanNumerals(romanNumerals) == x)
-	fmt.Print(" ")
-	fmt.Println(productOfRomanNumerals(romanNumerals))
-	return productOfRomanNumerals(romanNumerals) == x
+func rule9(romanNumerals []string, x int) (bool, int) {
+	sum := productOfRomanNumerals(romanNumerals)
+	return sum == x, sum
 }
 
 // Calculate the product of the Roman numerals

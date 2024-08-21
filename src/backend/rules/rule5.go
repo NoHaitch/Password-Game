@@ -1,15 +1,13 @@
 package rules
 
 import (
-	"fmt"
 	"unicode"
 )
 
 // Rule 5 – The digits in your password must add up to X
-func rule5(password string, x int) bool {
-	fmt.Print("Rule 5: ")
-	fmt.Println(sumOfDigits(password) == x)
-	return sumOfDigits(password) == x
+func rule5(password string, x int) (bool, int) {
+	sum := sumOfDigits(password)
+	return sum == x, sum
 }
 
 // Sum of digits in a string

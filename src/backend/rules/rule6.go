@@ -2,7 +2,6 @@ package rules
 
 import (
 	"backend/algorithms"
-	"fmt"
 	"strings"
 )
 
@@ -12,9 +11,6 @@ func rule6(password string) bool {
 		"january", "february", "march", "april", "may", "june",
 		"july", "august", "september", "october", "november", "december",
 	}
-
-	fmt.Print("Rule 6: ")
-	fmt.Println(containsMonth(password, months))
 	return containsMonth(password, months)
 }
 

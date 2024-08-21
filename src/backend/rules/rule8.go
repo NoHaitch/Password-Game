@@ -2,15 +2,12 @@ package rules
 
 import (
 	"backend/algorithms"
-	"fmt"
 	"strings"
 )
 
 // Rule 8 – Your password must include one of this country
 // (Anda harus mencari minimal 10 gambar bendera negara. Tampilkan X bendera saja pada 1 sesi permainan)
 func rule8(password string, countrycodes []string) bool {
-	fmt.Print("Rule 8: ")
-	fmt.Println(containsCountry(password, countrycodes))
 	return containsCountry(password, countrycodes)
 }
 

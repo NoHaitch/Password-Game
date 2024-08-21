@@ -1,14 +1,11 @@
 package rules
 
 import (
-	"fmt"
 	"unicode"
 )
 
 // Rule 3 – Your password must contain an uppercase character
 func rule3(password string) bool {
-	fmt.Print("Rule 3: ")
-	fmt.Println(containsUppercase(password))
 	return containsUppercase(password)
 }
 
