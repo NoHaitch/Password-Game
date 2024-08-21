@@ -26,8 +26,50 @@ function Main() {
   const [currentGame, setCurrentGame] = useState({
     rule1Var: 0,
     rule5Var: 0,
+    rule5Progres: 0,
+    rule8Var: [],
+    rule9Var: 0,
+    rule9Progres: 0,
   });
 
+  const oneWordCountryCodes = [
+    'JP', // Japan
+    'FR', // France
+    'BR', // Brazil
+    'DE', // Germany
+    'IN', // India
+    'CN', // China
+    'AU', // Australia
+    'MX', // Mexico
+    'EG', // Egypt
+    'GR', // Greece
+    'IT', // Italy
+    'MA', // Morocco
+    'PE', // Peru
+    'ES', // Spain
+    'TH', // Thailand
+    'SE', // Sweden
+    'TR', // Turkey
+    'FI', // Finland
+    'VN', // Vietnam
+    'PT', // Portugal
+    'NO', // Norway
+    'CL', // Chile
+    'HU', // Hungary
+    'PL', // Poland
+    'AR', // Argentina
+    'DK', // Denmark
+    'IR', // Iran
+    'IQ', // Iraq
+    'MY', // Malaysia
+    'RU', // Russia
+    'CH', // Switzerland
+    'CO', // Colombia
+    'KE', // Kenya
+    'NL', // Netherlands
+    'CU', // Cuba
+  ];
+  
   const [loading, setLoading] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
 
@@ -66,37 +108,50 @@ function Main() {
   useEffect(() => {
     let interval;
 
-    if (playing && password) {
-      interval = setInterval(() => {
-        fetch("http://localhost:8080/main", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            password,
-            rule1Var: currentGame.rule1Var,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            console.log(data.results);
-
-            setConstraints(data.results || Array(20).fill(false));
-
-            for (let i = 0; i <= 20; i++) {
-              if (i === HighestLevel) {
-                setHighestLevel(HighestLevel + 1);
-              }
-              if (!data.results[i]) {
-                break;
-              }
-            }
+    if (playing) {
+      if (!password) {
+        setConstraints(Array(20).fill(false));
+      } else {
+        interval = setInterval(() => {
+          fetch("http://localhost:8080/main", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              password,
+              rule1Var: currentGame.rule1Var,
+              rule5Var: currentGame.rule5Var,
+              rule8Var: currentGame.rule8Var,
+              rule9Var: currentGame.rule9Var,
+            }),
           })
-          .catch((error) => {
-            console.error("Error:", error);
-          });
-      }, 1000);
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(data.results);
+
+              setConstraints(data.results || Array(20).fill(false));
+
+              for (let i = 0; i <= 20; i++) {
+                if (!data.results[i]) {
+                  if (i + 1 > HighestLevel) {
+                    setHighestLevel(i + 1);
+                  }
+                  break;
+                }
+              }
+
+              setCurrentGame({
+                ...currentGame,
+                rule5Progres: data.rule5Progres,
+                rule9Progres: data.rule9Progres,
+              });
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        }, 1000);
+      }
     }
 
     return () => {
@@ -129,13 +184,49 @@ function Main() {
 
   const handleGameStart = () => {
     if (difficulty === "Easy") {
-      setCurrentGame({ ...currentGame, rule1Var: 6 });
+      setCurrentGame({
+        ...currentGame,
+        rule1Var: 6,
+        rule5Var: Math.floor(Math.random() * (30 - 20 + 1)) + 20,
+        rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 5),
+        rule9Var:
+          (Math.floor(Math.random() * (30 - 10 + 1)) + 10) *
+          (Math.floor(Math.random() * (5 - 1 + 1)) + 1),
+      });
     } else if (difficulty === "Medium") {
-      setCurrentGame({ ...currentGame, rule1Var: 12 });
+      setCurrentGame({
+        ...currentGame,
+        rule1Var: 12,
+        rule5Var: Math.floor(Math.random() * (70 - 40 + 1)) + 40,
+        rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 3),
+        rule9Var:
+          (Math.floor(Math.random() * (60 - 15 + 1)) + 15) *
+          (Math.floor(Math.random() * (10 - 1 + 1)) + 1),
+      });
     } else {
-      setCurrentGame({ ...currentGame, rule1Var: 18 });
+      setCurrentGame({
+        ...currentGame,
+        rule1Var: 18,
+        rule5Var: Math.floor(Math.random() * (100 - 60 + 1)) + 60,
+        rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 1),
+        rule9Var:
+          (Math.floor(Math.random() * (90 - 20 + 1)) + 20) *
+          (Math.floor(Math.random() * (15 - 1 + 1)) + 1),
+      });
     }
     setLoadingData(false);
+  };
+
+  const generateRandomCountryCodes = (countryCodes, amount) => {
+    const randomCodes = [];
+    const totalCountries = countryCodes.length;
+
+    for (let i = 0; i < amount; i++) {
+      const randomIndex = Math.floor(Math.random() * totalCountries);
+      randomCodes.push(countryCodes[randomIndex]);
+    }
+
+    return randomCodes;
   };
 
   if (loading) {

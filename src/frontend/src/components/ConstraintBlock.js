@@ -1,35 +1,86 @@
 import React, { useEffect } from "react";
 import { IoCheckmark, IoClose } from "react-icons/io5";
+import FlagDisplay from "./FlagDisplay";
 
-const ConstraintBlock = (props) => {  
+const ConstraintBlock = (props) => {
   var content = "";
   switch (props.ruleNumber) {
     case "1":
-      content = `Your password must be at least ${props.data.rule1Var} characters`;
+      content = (
+        <p className="rounded-sm text-sm p-2">
+          Your password must be at least {props.data.rule1Var} characters
+        </p>
+      );
       break;
     case "2":
-      content = "Your password must include a number";
+      content = (
+        <p className="rounded-sm text-sm p-2">
+          Your password must include a number
+        </p>
+      );
       break;
     case "3":
-      content = "Your password must include an uppercase letter";
+      content = (
+        <p className="rounded-sm text-sm p-2">
+          Your password must include an uppercase letter
+        </p>
+      );
       break;
     case "4":
-      content = "Your password must include a special character";
+      content = (
+        <p className="rounded-sm text-sm p-2">
+          Your password must include a special character
+        </p>
+      );
       break;
     case "5":
-      content = "The digits in your password must add up to X";
+      content = (
+        <div className="p-2">
+          <p className="rounded-sm text-sm">
+            The digits in your password must add up to {props.data.rule5Var}
+          </p>
+          <p className="rounded-sm text-sm">
+            Currently it adds up to: {props.data.rule5Progres}
+          </p>
+        </div>
+      );
       break;
     case "6":
-      content = "Your password must include a month of the year";
+      content = (
+        <p className="rounded-sm text-sm p-2">
+          Your password must include a month of the year
+        </p>
+      );
       break;
     case "7":
-      content = "Your password must include a Roman numeral";
+      content = (
+        <p className="rounded-sm text-sm p-2">
+          Your password must include a Roman numeral
+        </p>
+      );
       break;
     case "8":
-      content = "Your password must include one of this country";
+      content = (
+        <div className="p-2">
+          Your password must include one of this country
+          <FlagDisplay countryCodes={props.data.rule8Var}/>
+        </div>
+      );
       break;
     case "9":
-      content = "The Roman numerals in your password should multiply to X";
+      console.log(props.data.rule9Var);
+      console.log(props.data.rule9Progres);
+      
+      content = (
+        <div className="p-2">
+          <p className="rounded-sm text-sm">
+          The Roman numerals in your password should multiply to {props.data.rule9Var}
+          </p>
+          <p className="rounded-sm text-sm">
+            Currently it adds up to: {props.data.rule9Progres}
+          </p>
+        </div>
+      );
       break;
     case "10":
       content = "Oh no! Your password is on fire 🔥. Quick, put it out!";

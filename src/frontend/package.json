@@ -11,6 +11,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-expanding-textarea": "^2.3.6",
+    "react-flagkit": "^2.0.4",
     "react-icons": "^5.3.0",
     "react-router-dom": "^6.24.1",
     "react-scripts": "5.0.1",
