@@ -2,7 +2,6 @@ package main
 
 import (
 	"backend/rules"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -41,13 +40,15 @@ func main() {
 	// Main Endpoint -> Check the password
 	r.POST("/main", func(c *gin.Context) {
 		var requestBody struct {
-			Password  string   `json:"password"`
-			Rule1Var  int      `json:"rule1Var"`
-			Rule5Var  int      `json:"rule5Var"`
-			Rule8Var  []string `json:"rule8Var"`
-			Rule9Var  int      `json:"rule9Var"`
-			Captcha   string   `json:"captcha"`
-			Rule13Var int      `json:"rule13Var"`
+			Password    string   `json:"password"`
+			Rule1Var    int      `json:"rule1Var"`
+			Rule5Var    int      `json:"rule5Var"`
+			Rule8Var    []string `json:"rule8Var"`
+			Rule9Var    int      `json:"rule9Var"`
+			Captcha     string   `json:"captcha"`
+			Rule13Var   int      `json:"rule13Var"`
+			Rule15Value []string `json:"rule15Value"`
+			Rule18Var   int      `json:"rule18Var"`
 		}
 
 		if err := c.BindJSON(&requestBody); err != nil {
@@ -63,8 +64,8 @@ func main() {
 		rule9Var := requestBody.Rule9Var
 		captcha := requestBody.Captcha
 		rule13Var := requestBody.Rule13Var
-
-		fmt.Println("Captcha: ", captcha)
+		rule15Value := requestBody.Rule15Value
+		rule18Var := requestBody.Rule18Var
 
 		if password == "" {
 			PrintlnRed("[Main] Request Failed, Empty Password")
@@ -73,7 +74,7 @@ func main() {
 		}
 
 		// Main Logic
-		result, accepted, rule5Progres, rule9Progres := rules.TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var)
+		result, accepted, rule5Progres, rule9Progres := rules.TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var, rule15Value, rule18Var)
 
 		c.JSON(http.StatusOK, gin.H{
 			"results":      result,

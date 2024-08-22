@@ -1,14 +1,8 @@
 package rules
 
-import (
-	"fmt"
-)
-
 // Rule 19 – The length of your password must be a prime number
-func rule19(password string) bool {
-	fmt.Print("Rule 19: ")
-	fmt.Println(isPrimeNumber(len(password)))
-	return isPrimeNumber(len(password))
+func rule19(length int) bool {
+	return isPrimeNumber(length)
 }
 
 // Check if a number is prime

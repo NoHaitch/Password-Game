@@ -1,13 +1,10 @@
 package rules
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Rule 15 – A sacrifice must be made. Pick X letters that you will no longer be able to use
 func rule15(password string, chars []string) bool {
-	fmt.Print("Rule 15: ")
-	fmt.Println(!containChars(password, chars))
+	fmt.Println(chars)
 	return !containChars(password, chars)
 }
 

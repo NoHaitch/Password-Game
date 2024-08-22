@@ -2,14 +2,11 @@ package rules
 
 import (
 	"backend/algorithms"
-	"fmt"
 )
 
 // Rule 16 – Your password must contain one of the following words: I want IRK | I need IRK | I love IRK
 func rule16(password string) bool {
 	phrases := []string{"I want IRK", "I need IRK", "I love IRK"}
-	fmt.Print("Rule 16: ")
-	fmt.Println(containPhrase(password, phrases))
 	return containPhrase(password, phrases)
 }
 
