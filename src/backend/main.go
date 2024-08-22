@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/rules"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -40,12 +41,13 @@ func main() {
 	// Main Endpoint -> Check the password
 	r.POST("/main", func(c *gin.Context) {
 		var requestBody struct {
-			Password string   `json:"password"`
-			Rule1Var int      `json:"rule1Var"`
-			Rule5Var int      `json:"rule5Var"`
-			Rule8Var []string `json:"rule8Var"`
-			Rule9Var int      `json:"rule9Var"`
-			Captcha  string   `json:"captcha,omitempty"`
+			Password  string   `json:"password"`
+			Rule1Var  int      `json:"rule1Var"`
+			Rule5Var  int      `json:"rule5Var"`
+			Rule8Var  []string `json:"rule8Var"`
+			Rule9Var  int      `json:"rule9Var"`
+			Captcha   string   `json:"captcha"`
+			Rule13Var int      `json:"rule13Var"`
 		}
 
 		if err := c.BindJSON(&requestBody); err != nil {
@@ -59,7 +61,10 @@ func main() {
 		rule5Var := requestBody.Rule5Var
 		rule8Var := requestBody.Rule8Var
 		rule9Var := requestBody.Rule9Var
-		// captcha := requestBody.Captcha
+		captcha := requestBody.Captcha
+		rule13Var := requestBody.Rule13Var
+
+		fmt.Println("Captcha: ", captcha)
 
 		if password == "" {
 			PrintlnRed("[Main] Request Failed, Empty Password")
@@ -68,7 +73,7 @@ func main() {
 		}
 
 		// Main Logic
-		result, accepted, rule5Progres, rule9Progres := rules.TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var)
+		result, accepted, rule5Progres, rule9Progres := rules.TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var)
 
 		c.JSON(http.StatusOK, gin.H{
 			"results":      result,
@@ -121,7 +126,7 @@ func main() {
 			Difficulty string `json:"difficulty"`
 			Score      int    `json:"score"`
 			Password   string `json:"password"`
-			Won        bool   `json:"won"` // Added won field
+			Won        bool   `json:"won"`
 		}
 
 		if err := c.BindJSON(&requestBody); err != nil {
@@ -129,7 +134,7 @@ func main() {
 			return
 		}
 
-		if requestBody.Username == "" || requestBody.Difficulty == "" || requestBody.Score == 0 || requestBody.Password == "" {
+		if requestBody.Username == "" || requestBody.Difficulty == "" || requestBody.Password == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Username, difficulty, score, and password fields are required"})
 			return
 		}

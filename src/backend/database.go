@@ -87,7 +87,7 @@ func getLeaderboard(difficulty string) ([]string, error) {
 }
 
 // Get the game history for the specified username and difficulty.
-func getHistory(username, difficulty string) ([]string, error) {
+func getHistory(username, difficulty string) ([]map[string]interface{}, error) {
 	query := `
 		SELECT score, date, password, won
 		FROM history
@@ -101,7 +101,7 @@ func getHistory(username, difficulty string) ([]string, error) {
 	}
 	defer rows.Close()
 
-	var history []string
+	var history []map[string]interface{}
 	for rows.Next() {
 		var score int
 		var date, password string
@@ -109,7 +109,13 @@ func getHistory(username, difficulty string) ([]string, error) {
 		if err := rows.Scan(&score, &date, &password, &won); err != nil {
 			return nil, err
 		}
-		history = append(history, fmt.Sprintf("Score: %d, Date: %s, Password: %s, Won: %t", score, date, password, won))
+
+		history = append(history, map[string]interface{}{
+			"score":    score,
+			"date":     date,
+			"password": password,
+			"won":      won,
+		})
 	}
 
 	return history, nil

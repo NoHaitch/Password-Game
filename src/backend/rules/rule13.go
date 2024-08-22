@@ -1,20 +1,14 @@
 package rules
 
-import (
-	"fmt"
-)
-
 // Rule 13 – Your password must include a leap year
-func rule13(numbers []int) bool {
-	fmt.Print("Rule 13: ")
-	fmt.Println(containsLeapYear(numbers))
-	return containsLeapYear(numbers)
+func rule13(numbers []int, min int) bool {
+	return containsLeapYear(numbers, min)
 }
 
 // Check if slice contains a leap year
-func containsLeapYear(numbers []int) bool {
+func containsLeapYear(numbers []int, min int) bool {
 	for _, year := range numbers {
-		if isLeapYear(year) {
+		if year > min && isLeapYear(year) {
 			return true
 		}
 	}

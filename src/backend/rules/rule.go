@@ -8,7 +8,7 @@ import (
 
 // Check the password
 // return the result, accepted, rule5Progres, rule9Progres
-func TestPassword(password string, rule1Var int, rule5Var int, rule8Var []string, rule9Var int) ([]bool, bool, int, int) {
+func TestPassword(password string, rule1Var int, rule5Var int, rule8Var []string, rule9Var int, captcha string, rule13Var int) ([]bool, bool, int, int) {
 	romanNumerals := algorithms.RegexGetRomanNumerals(password)
 	numbers := algorithms.RegexGetNumber(password)
 	rule5Res, rule5Progres := rule5(password, rule5Var)
@@ -27,8 +27,8 @@ func TestPassword(password string, rule1Var int, rule5Var int, rule8Var []string
 		rule9Res,                            // Rule 9 – The Roman numerals in your password should multiply to X
 		rule10(password),                    // Rule 10 – Oh no! Your password is on fire 🔥. Quick, put it out!
 		rule11(password),                    // Rule 11 – 🥚 This is my chicken Paul. He hasn’t hatched yet. Please put him in your password and keep him safe
-		rule12(password, "captcha"),         // Rule 12 – Your password must include this CAPTCHA
-		rule13(numbers),                     // Rule 13 – Your password must include a leap year
+		rule12(password, captcha),           // Rule 12 – Your password must include this CAPTCHA
+		rule13(numbers, rule13Var),          // Rule 13 – Your password must include a leap year
 		rule14(password, 0, 0),              // Rule 14 – 🐔 Paul has hatched ! Please don’t forget to feed him. He eats X 🐛 every Y second
 		rule15(password, []string{"abcde"}), // Rule 15 – A sacrifice must be made. Pick X letters that you will no longer be able to use
 		rule16(password),                    // Rule 16 – Your password must contain one of the following words: I want IRK | I need IRK | I love IRK
