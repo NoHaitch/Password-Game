@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdOutlineLeaderboard } from "react-icons/md";
+import Textarea from "react-expanding-textarea";
 import { twMerge } from "tailwind-merge";
 
+import { MdOutlineLeaderboard } from "react-icons/md";
 import { TbConfetti } from "react-icons/tb";
 import { LuHistory } from "react-icons/lu";
 import { IoIosInformationCircleOutline } from "react-icons/io";
@@ -11,7 +12,6 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 
 import { auth } from "../config/firebase";
 import Title from "../components/Title";
-import PasswordField from "../components/PasswordField";
 import ConstraintBlock from "../components/ConstraintBlock";
 import Leaderboard from "../components/Leaderboard";
 import History from "../components/History";
@@ -21,7 +21,7 @@ function Main() {
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(0);
   const [password, setPassword] = useState("");
-  const [HighestLevel, setHighestLevel] = useState(1);
+  const [HighestLevel, setHighestLevel] = useState(12);
   const [constraints, setConstraints] = useState(Array(20).fill(false));
   const [currentGame, setCurrentGame] = useState({
     rule1Var: 0,
@@ -30,46 +30,55 @@ function Main() {
     rule8Var: [],
     rule9Var: 0,
     rule9Progres: 0,
+    rule10VarA: 0,
+    rule10VarB: 0,
+    rule10VarC: 0,
+    rule11On: false,
+    captchaValue: "",
+    captchaImg: "",
   });
 
   const oneWordCountryCodes = [
-    'JP', // Japan
-    'FR', // France
-    'BR', // Brazil
-    'DE', // Germany
-    'IN', // India
-    'CN', // China
-    'AU', // Australia
-    'MX', // Mexico
-    'EG', // Egypt
-    'GR', // Greece
-    'IT', // Italy
-    'MA', // Morocco
-    'PE', // Peru
-    'ES', // Spain
-    'TH', // Thailand
-    'SE', // Sweden
-    'TR', // Turkey
-    'FI', // Finland
-    'VN', // Vietnam
-    'PT', // Portugal
-    'NO', // Norway
-    'CL', // Chile
-    'HU', // Hungary
-    'PL', // Poland
-    'AR', // Argentina
-    'DK', // Denmark
-    'IR', // Iran
-    'IQ', // Iraq
-    'MY', // Malaysia
-    'RU', // Russia
-    'CH', // Switzerland
-    'CO', // Colombia
-    'KE', // Kenya
-    'NL', // Netherlands
-    'CU', // Cuba
+    "JP", // Japan
+    "FR", // France
+    "BR", // Brazil
+    "DE", // Germany
+    "IN", // India
+    "CN", // China
+    "AU", // Australia
+    "MX", // Mexico
+    "EG", // Egypt
+    "GR", // Greece
+    "IT", // Italy
+    "MA", // Morocco
+    "PE", // Peru
+    "ES", // Spain
+    "TH", // Thailand
+    "SE", // Sweden
+    "TR", // Turkey
+    "FI", // Finland
+    "VN", // Vietnam
+    "PT", // Portugal
+    "NO", // Norway
+    "CL", // Chile
+    "HU", // Hungary
+    "PL", // Poland
+    "AR", // Argentina
+    "DK", // Denmark
+    "IR", // Iran
+    "IQ", // Iraq
+    "MY", // Malaysia
+    "RU", // Russia
+    "CH", // Switzerland
+    "CO", // Colombia
+    "KE", // Kenya
+    "NL", // Netherlands
+    "CU", // Cuba
   ];
-  
+  const [count, setCount] = useState(0);
+  const [isFireActive, setIsFireActive] = useState(false);
+  const [isFireRuleOn, setIsFireRuleOn] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
 
@@ -88,9 +97,10 @@ function Main() {
 
   const [playing, setPlaying] = useState(false);
   const [difficultyStyle, setDifficultyStyle] = useState("");
-  const [difficulty, setDifficulty] = useState("");
+  const [difficulty, setDifficulty] = useState("None");
   const [newDifficulty, setNewDifficulty] = useState("");
   const [newDifficultyStyle, setNewDifficultyStyle] = useState("");
+  const [loseMessage, setLoseMessage] = useState("");
 
   useEffect(() => {
     const authenticated = onAuthStateChanged(auth, (user) => {
@@ -124,14 +134,11 @@ function Main() {
               rule5Var: currentGame.rule5Var,
               rule8Var: currentGame.rule8Var,
               rule9Var: currentGame.rule9Var,
+              captcha: currentGame.captchaValue,
             }),
           })
             .then((response) => response.json())
             .then((data) => {
-              console.log(data.results);
-
-              setConstraints(data.results || Array(20).fill(false));
-
               for (let i = 0; i <= 20; i++) {
                 if (!data.results[i]) {
                   if (i + 1 > HighestLevel) {
@@ -141,11 +148,25 @@ function Main() {
                 }
               }
 
-              setCurrentGame({
+              setCurrentGame((currentGame) => ({
                 ...currentGame,
                 rule5Progres: data.rule5Progres,
                 rule9Progres: data.rule9Progres,
-              });
+              }));
+
+              if (currentGame.rule11On && !data.results[10]) {
+                setLoseMessage("You lost the egg!");
+                handleGameLose();
+              }
+
+              if (HighestLevel >= 11) {
+                setCurrentGame((currentGame) => ({
+                  ...currentGame,
+                  rule11On: true,
+                }));
+              }
+
+              setConstraints(data.results || Array(20).fill(false));
             })
             .catch((error) => {
               console.error("Error:", error);
@@ -157,13 +178,45 @@ function Main() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [playing, password]);
+  }, [playing, password, currentGame.captchaValue]);
 
   useEffect(() => {
     if (difficulty !== "") {
       handleGameStart();
     }
   }, [difficulty]);
+
+  useEffect(() => {
+    let fireInterval, reappearTimeout;
+
+    if (isFireRuleOn && password) {
+      console.log("FIRE !");
+
+      reappearTimeout = setTimeout(() => {
+        setIsFireActive(true);
+      }, Math.random() * (currentGame.rule10VarC - currentGame.rule10VarB) + currentGame.rule10VarB);
+
+      if (isFireActive) {
+        fireInterval = setInterval(() => {
+          setPassword((prevPassword) => {
+            const newPassword = prevPassword.slice(0, -1);
+            setCount(newPassword.length);
+            return newPassword;
+          });
+
+          if (password.length === 1) {
+            setIsFireActive(false);
+            clearInterval(fireInterval);
+          }
+        }, currentGame.rule10VarA);
+      }
+    }
+
+    return () => {
+      clearInterval(fireInterval);
+      clearTimeout(reappearTimeout);
+    };
+  }, [isFireRuleOn, isFireActive, password]);
 
   const logout = async () => {
     try {
@@ -174,59 +227,128 @@ function Main() {
   };
 
   const resetNonGamePopup = () => {
-    setPopup({
+    setPopup((popup) => ({
       ...popup,
       notReady: false,
       leaderboard: false,
       history: false,
-    });
+    }));
   };
 
   const handleGameStart = () => {
-    if (difficulty === "Easy") {
-      setCurrentGame({
+    if (difficulty === "easy") {
+      setCurrentGame((currentGame) => ({
         ...currentGame,
         rule1Var: 6,
-        rule5Var: Math.floor(Math.random() * (30 - 20 + 1)) + 20,
+        rule5Var: Math.floor(Math.random() * (30 - 20)) + 20,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 5),
-        rule9Var:
-          (Math.floor(Math.random() * (30 - 10 + 1)) + 10) *
-          (Math.floor(Math.random() * (5 - 1 + 1)) + 1),
-      });
-    } else if (difficulty === "Medium") {
-      setCurrentGame({
+        rule9Var: getValidMultiple(10, 100),
+        rule10VarA: 4000,
+        rule10VarB: 30000,
+        rule10VarC: 40000,
+      }));
+    } else if (difficulty === "medium") {
+      setCurrentGame((currentGame) => ({
         ...currentGame,
         rule1Var: 12,
         rule5Var: Math.floor(Math.random() * (70 - 40 + 1)) + 40,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 3),
-        rule9Var:
-          (Math.floor(Math.random() * (60 - 15 + 1)) + 15) *
-          (Math.floor(Math.random() * (10 - 1 + 1)) + 1),
-      });
+        rule9Var: getValidMultiple(40, 200),
+        rule10VarA: 3000,
+        rule10VarB: 20000,
+        rule10VarC: 30000,
+      }));
     } else {
-      setCurrentGame({
+      setCurrentGame((currentGame) => ({
         ...currentGame,
         rule1Var: 18,
-        rule5Var: Math.floor(Math.random() * (100 - 60 + 1)) + 60,
+        rule5Var: Math.floor(Math.random() * (100 - 60)) + 60,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 1),
-        rule9Var:
-          (Math.floor(Math.random() * (90 - 20 + 1)) + 20) *
-          (Math.floor(Math.random() * (15 - 1 + 1)) + 1),
-      });
+        rule9Var: getValidMultiple(80, 300),
+        rule10VarA: 2000,
+        rule10VarB: 10000,
+        rule10VarC: 30000,
+      }));
     }
     setLoadingData(false);
   };
 
+  const handleGameLose = async () => {
+    setPlaying(false);
+    setPopup((popup) => ({ ...popup, lose: true }));
+
+    const historyData = {
+      username: user?.email,
+      difficulty: difficulty,
+      score: score,
+      password: password,
+      won: false,
+    };
+
+    try {
+      const response = await fetch("http://localhost:8080/addGameHistory", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(historyData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Game history added successfully:", data);
+      } else {
+        console.error("Failed to add game history:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error adding game history:", error);
+    }
+  };
+
+  const handleGameWin = () => {
+    setPlaying(false);
+    setPopup((popup) => ({ ...popup, win: true }));
+    setDifficulty("None");
+    setDifficultyStyle("");
+  };
+
   const generateRandomCountryCodes = (countryCodes, amount) => {
     const randomCodes = [];
+    const usedIndices = new Set();
     const totalCountries = countryCodes.length;
 
-    for (let i = 0; i < amount; i++) {
+    while (randomCodes.length < amount) {
       const randomIndex = Math.floor(Math.random() * totalCountries);
-      randomCodes.push(countryCodes[randomIndex]);
+
+      if (!usedIndices.has(randomIndex)) {
+        usedIndices.add(randomIndex);
+        randomCodes.push(countryCodes[randomIndex]);
+      }
     }
 
     return randomCodes;
+  };
+
+  const getValidMultiple = (min, max) => {
+    const validMultiples = [];
+    for (let i = min; i <= max; i++) {
+      if (i % 2 === 0 || i % 3 === 0 || i % 5 === 0) {
+        validMultiples.push(i);
+      }
+    }
+    const randomIndex = Math.floor(Math.random() * validMultiples.length);
+    return validMultiples[randomIndex];
+  };
+
+  const handleCaptchaGenerate = (captchaText) => {
+    setCurrentGame((currentGame) => ({
+      ...currentGame,
+      captchaValue: captchaText,
+    }));
+  };
+
+  const handleCaptchaImgGenerate = (img) => {
+    setCurrentGame((currentGame) => ({ ...currentGame, captchaImg: img }));
   };
 
   if (loading) {
@@ -274,7 +396,7 @@ function Main() {
                     className="focus:outline-none text-white bg-yellow-600 hover:bg-yellow-700 focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 focus:ring-yellow-900"
                     onClick={() => {
                       resetNonGamePopup();
-                      setPopup({ ...popup, notReady: true });
+                      setPopup((popup) => ({ ...popup, notReady: true }));
                     }}
                   >
                     Save
@@ -284,7 +406,7 @@ function Main() {
                     className="focus:outline-none text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 bg-red-600 hover:bg-red-700 focus:ring-red-900"
                     onClick={() => {
                       resetNonGamePopup();
-                      setPopup({ ...popup, notReady: true });
+                      setPopup((popup) => ({ ...popup, notReady: true }));
                     }}
                   >
                     Load
@@ -293,7 +415,15 @@ function Main() {
                 <button
                   type="button"
                   className="focus:outline-none text-white focus:ring-4  font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 bg-green-600 hover:bg-green-700 focus:ring-green-800"
-                  onClick={() => setNewGameDialog(true)}
+                  onClick={() => {
+                    setPopup((popup) => ({
+                      ...popup,
+                      win: false,
+                      lose: false,
+                    }));
+                    resetNonGamePopup();
+                    setNewGameDialog(true);
+                  }}
                 >
                   New Game
                 </button>
@@ -304,7 +434,7 @@ function Main() {
                 className="flex flex-row items-center cursor-pointer"
                 onClick={() => {
                   resetNonGamePopup();
-                  setPopup({ ...popup, leaderboard: true });
+                  setPopup((popup) => ({ ...popup, leaderboard: true }));
                 }}
               >
                 <MdOutlineLeaderboard className="m-2 size-6" /> Leaderboard
@@ -313,7 +443,7 @@ function Main() {
                 className="flex flex-row items-center cursor-pointer"
                 onClick={() => {
                   resetNonGamePopup();
-                  setPopup({ ...popup, history: true });
+                  setPopup((popup) => ({ ...popup, history: true }));
                 }}
               >
                 <LuHistory className="m-2 size-6" /> History
@@ -346,11 +476,11 @@ function Main() {
                     setNewGameDialog(false);
                     if (playing) {
                       setResetConfirmation(true);
-                      setNewDifficulty("Easy");
+                      setNewDifficulty("easy");
                       setNewDifficultyStyle("text-green-400");
                     } else {
                       setPlaying(true);
-                      setDifficulty("Easy");
+                      setDifficulty("easy");
                       setDifficultyStyle("text-green-400");
                     }
                   }}
@@ -364,11 +494,11 @@ function Main() {
                     setNewGameDialog(false);
                     if (playing) {
                       setResetConfirmation(true);
-                      setNewDifficulty("Medium");
+                      setNewDifficulty("medium");
                       setNewDifficultyStyle("text-blue-400");
                     } else {
                       setPlaying(true);
-                      setDifficulty("Medium");
+                      setDifficulty("medium");
                       setDifficultyStyle("text-blue-400");
                     }
                   }}
@@ -382,11 +512,11 @@ function Main() {
                     setNewGameDialog(false);
                     if (playing) {
                       setResetConfirmation(true);
-                      setNewDifficulty("Hard");
+                      setNewDifficulty("hard");
                       setNewDifficultyStyle("text-red-400");
                     } else {
                       setPlaying(true);
-                      setDifficulty("Hard");
+                      setDifficulty("hard");
                       setDifficultyStyle("text-red-400");
                     }
                   }}
@@ -444,9 +574,29 @@ function Main() {
           </div>
         ) : (
           <>
-            <PasswordField
-              onPasswordChange={(newPassword) => setPassword(newPassword)}
-            />
+            <div className="flex flex-row items-center justify-center">
+              <div>
+                <label
+                  htmlFor="textarea"
+                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Choose a password!
+                </label>
+                <Textarea
+                  className="w-[500px] resize-none block p-2.5 text-lg rounded-lg border-2 bg-[#1E1F20] border-[#7188D9] placeholder-gray-400 text-white focus:ring-blue-500 focus:border-blue-500"
+                  id="textarea"
+                  placeholder="Password..."
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setCount(e.target.value.length);
+                  }}
+                  value={password}
+                />
+              </div>
+              <p className="text-white absolute mr-[-550px] mb-[-20px] text-left">
+                {count}
+              </p>
+            </div>
             {1 <= HighestLevel && (
               <ConstraintBlock
                 ruleNumber="1"
@@ -529,6 +679,8 @@ function Main() {
                 ruleNumber="12"
                 state={constraints[11]}
                 data={currentGame}
+                onCaptchaGenerate={handleCaptchaGenerate}
+                onCaptchaImageGenerate={handleCaptchaImgGenerate}
               />
             )}
             {13 <= HighestLevel && (
@@ -595,11 +747,11 @@ function Main() {
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
-                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setPopup({ ...popup, lose: false })}
+                className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => setPopup((popup) => ({ ...popup, lose: false }))}
               >
                 <svg
-                  class="w-3 h-3"
+                  className="w-3 h-3"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -607,14 +759,15 @@ function Main() {
                 >
                   <path
                     stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
                   />
                 </svg>
               </button>
               <h1 className="m-2 text-xl">You Lose!</h1>
+              <h1 className="m-2 text-xl text-red-500">{loseMessage}</h1>
               <h1 className="m-2 text-gray-400 text-xs">
                 Use the side menu to make a new game
               </h1>
@@ -627,11 +780,11 @@ function Main() {
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
-                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setPopup({ ...popup, win: false })}
+                className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => setPopup((popup) => ({ ...popup, win: false }))}
               >
                 <svg
-                  class="w-3 h-3"
+                  className="w-3 h-3"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -639,18 +792,19 @@ function Main() {
                 >
                   <path
                     stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
                   />
                 </svg>
               </button>
-              <div className="flex flex-row justify-center items-center">
+              <div className="flex flex-row justify-center items-center text-center">
                 <TbConfetti className="size-[24px] text-red-500" />
                 <h1 className="m-2 text-xl">You Win!</h1>
               </div>
               <h1 className="m-2">Score: {score}</h1>
+              <h1 className="m-2">Difficulty: {difficulty}</h1>
               <h1 className="m-2 text-gray-400 text-xs">
                 Use the side menu to make a new game
               </h1>
@@ -663,11 +817,13 @@ function Main() {
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
-                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setPopup({ ...popup, notReady: false })}
+                className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() =>
+                  setPopup((popup) => ({ ...popup, notReady: false }))
+                }
               >
                 <svg
-                  class="w-3 h-3"
+                  className="w-3 h-3"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -675,9 +831,9 @@ function Main() {
                 >
                   <path
                     stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
                   />
                 </svg>
@@ -692,11 +848,13 @@ function Main() {
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
-                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
-                onClick={() => setPopup({ ...popup, leaderboard: false })}
+                className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() =>
+                  setPopup((popup) => ({ ...popup, leaderboard: false }))
+                }
               >
                 <svg
-                  class="w-3 h-3"
+                  className="w-3 h-3"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -704,9 +862,9 @@ function Main() {
                 >
                   <path
                     stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
                   />
                 </svg>
@@ -721,13 +879,13 @@ function Main() {
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[800px]">
               <button
                 type="button"
-                class="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
                 onClick={() => {
-                  setPopup({ ...popup, history: false });
+                  setPopup((popup) => ({ ...popup, history: false }));
                 }}
               >
                 <svg
-                  class="w-3 h-3"
+                  className="w-3 h-3"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -735,9 +893,9 @@ function Main() {
                 >
                   <path
                     stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
                   />
                 </svg>

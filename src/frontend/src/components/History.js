@@ -34,17 +34,15 @@ function History() {
           return response.json();
         })
         .then((data) => {
-          if (data.history === null || data.history.length === 0) {
-            setHistory(null);
-          } else if (Array.isArray(data.history)) {
-            setHistory(data.history);
-          } else {
+          if (!data.history || !Array.isArray(data.history)) {
             setError("Unexpected data format");
+          } else {
+            setHistory(data.history);
           }
           setLoading(false);
         })
         .catch(() => {
-          setError("Server Error: Failed to Fetch data");
+          setError("Server Error: Failed to fetch data");
           setLoading(false);
         });
     }
@@ -99,7 +97,7 @@ function History() {
 
       {error ? (
         <div className="text-center text-red-500 p-4">{error}</div>
-      ) : history === null || history.length === 0 ? (
+      ) : history.length === 0 ? (
         <div className="text-center p-4">
           No history available for this selection.
         </div>
@@ -119,7 +117,7 @@ function History() {
               {history.map((game, index) => (
                 <tr key={index} className="border-b text-slate-300">
                   <td className="py-3 px-6 text-center">{game.score}</td>
-                  <td className="py-3 px-6 text-center">{game.date}</td>
+                  <td className="py-3 px-6 text-center">{game.date.split('T')[0]}</td>
                   <td className="py-3 px-6 text-center">{game.time}</td>
                   <td className="py-3 px-6 text-center">
                     {game.isWon ? "Yes" : "No"}
