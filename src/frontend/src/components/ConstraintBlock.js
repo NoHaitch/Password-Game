@@ -116,7 +116,7 @@ const ConstraintBlock = (props) => {
     case "13":
       content = (
         <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          Your password must include a leap year
+          Your password must include a leap year. The year must be above {props.data.rule13Var}.
         </p>
       );
       break;
