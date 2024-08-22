@@ -131,7 +131,7 @@ const ConstraintBlock = (props) => {
     case "15":
       content = (
         <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          A sacrifice must be made. Pick X letters that you will no longer be
+          A sacrifice must be made. Pick {props.data.rule15Var} letters that you will no longer be
           able to use
         </p>
       );
@@ -168,7 +168,7 @@ const ConstraintBlock = (props) => {
     case "20":
       content = (
         <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          Your password must include the current time
+          Your password must include the current time using the 24-hour format "hour:minute"
         </p>
       );
       break;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Textarea from "react-expanding-textarea";
 import { twMerge } from "tailwind-merge";
@@ -21,7 +21,8 @@ function Main() {
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(0);
   const [password, setPassword] = useState("");
-  const [HighestLevel, setHighestLevel] = useState(12);
+  const inputRef = useRef(null);
+  const [HighestLevel, setHighestLevel] = useState(9);
   const [constraints, setConstraints] = useState(Array(20).fill(false));
   const [currentGame, setCurrentGame] = useState({
     rule1Var: 0,
@@ -30,12 +31,18 @@ function Main() {
     rule8Var: [],
     rule9Var: 0,
     rule9Progres: 0,
+    rule10On: false,
     rule10VarA: 0,
     rule10VarB: 0,
     rule10VarC: 0,
+    rule11Trigger: false,
     rule11On: false,
-    captchaValue: "",
+    captchaValue: ",./';]",
     captchaImg: "",
+    rule13Var: 1000,
+    rule14On: false,
+    rule15Var: 0,
+    rule15Value: [],
   });
 
   const oneWordCountryCodes = [
@@ -65,6 +72,7 @@ function Main() {
     "PL", // Poland
     "AR", // Argentina
     "DK", // Denmark
+    "ID", // Indonesia
     "IR", // Iran
     "IQ", // Iraq
     "MY", // Malaysia
@@ -76,11 +84,11 @@ function Main() {
     "CU", // Cuba
   ];
   const [count, setCount] = useState(0);
-  const [isFireActive, setIsFireActive] = useState(false);
-  const [isFireRuleOn, setIsFireRuleOn] = useState(false);
+  const [burningTimeout, setBurningTimeout] = useState(false);
+  const burnIntervalRef = useRef(null);
+  const reappearTimeoutRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
-  const [loadingData, setLoadingData] = useState(false);
 
   const [popup, setPopup] = useState({
     notReady: false,
@@ -92,8 +100,6 @@ function Main() {
 
   const [resetConfirmation, setResetConfirmation] = useState(false);
   const [newGameDialog, setNewGameDialog] = useState(false);
-  const [saveGameDialog, setSaveGameDialog] = useState(false);
-  const [loadGameDialog, setLoadGameDialog] = useState(false);
 
   const [playing, setPlaying] = useState(false);
   const [difficultyStyle, setDifficultyStyle] = useState("");
@@ -135,6 +141,9 @@ function Main() {
               rule8Var: currentGame.rule8Var,
               rule9Var: currentGame.rule9Var,
               captcha: currentGame.captchaValue,
+              rule13Var: currentGame.rule13Var,
+              rule15Value: currentGame.rule15Value,
+              rule18Var: password.length,
             }),
           })
             .then((response) => response.json())
@@ -148,24 +157,66 @@ function Main() {
                 }
               }
 
-              setCurrentGame((currentGame) => ({
-                ...currentGame,
-                rule5Progres: data.rule5Progres,
-                rule9Progres: data.rule9Progres,
-              }));
-
-              if (currentGame.rule11On && !data.results[10]) {
-                setLoseMessage("You lost the egg!");
-                handleGameLose();
-              }
-
-              if (HighestLevel >= 11) {
+              if (HighestLevel > 20) {
+                handleGameWin();
+              } else {
                 setCurrentGame((currentGame) => ({
                   ...currentGame,
-                  rule11On: true,
+                  rule5Progres: data.rule5Progres,
+                  rule9Progres: data.rule9Progres,
                 }));
-              }
 
+                if (
+                  currentGame.rule11On &&
+                  !currentGame.rule14On &&
+                  currentGame.rule11Trigger &&
+                  !data.results[10]
+                ) {
+                  setLoseMessage("You lost the egg!");
+                  handleGameLose();
+                }
+
+                if (
+                  !currentGame.rule11Trigger &&
+                  currentGame.rule11On &&
+                  data.results[10]
+                ) {
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule11Trigger: true,
+                  }));
+                }
+
+                if (!currentGame.rule10On && HighestLevel >= 10) {
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule10On: true,
+                  }));
+                }
+
+                if (
+                  !currentGame.rule11On &&
+                  HighestLevel >= 11 &&
+                  !HighestLevel < 14
+                ) {
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule11On: true,
+                  }));
+                  procFire();
+                }
+
+                if (!currentGame.rule14On && HighestLevel >= 14) {
+                  let newPassword = password;
+                  newPassword = newPassword.replace(/🥚/, "🐔");
+                  setPassword(newPassword);
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule11On: false,
+                    rule14On: true,
+                  }));
+                }
+              }
               setConstraints(data.results || Array(20).fill(false));
             })
             .catch((error) => {
@@ -178,45 +229,67 @@ function Main() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [playing, password, currentGame.captchaValue]);
+  }, [playing, password, HighestLevel, currentGame.captchaValue]);
 
   useEffect(() => {
+    console.log(burningTimeout)
     if (difficulty !== "") {
       handleGameStart();
     }
-  }, [difficulty]);
+  }, [difficulty, burningTimeout]);
 
   useEffect(() => {
-    let fireInterval, reappearTimeout;
+    if (currentGame.rule10On) {
+      console.log("TRIGER fire spread: ", currentGame.rule10VarA);
 
-    if (isFireRuleOn && password) {
-      console.log("FIRE !");
+      burnIntervalRef.current = setInterval(() => {
+        setPassword((prevPassword) => {
+          const firstIndexFire = prevPassword.indexOf("🔥");
+          console.log("LastIndexFire: ", firstIndexFire);
 
-      reappearTimeout = setTimeout(() => {
-        setIsFireActive(true);
-      }, Math.random() * (currentGame.rule10VarC - currentGame.rule10VarB) + currentGame.rule10VarB);
-
-      if (isFireActive) {
-        fireInterval = setInterval(() => {
-          setPassword((prevPassword) => {
-            const newPassword = prevPassword.slice(0, -1);
-            setCount(newPassword.length);
-            return newPassword;
-          });
-
-          if (password.length === 1) {
-            setIsFireActive(false);
-            clearInterval(fireInterval);
+          if (firstIndexFire !== -1 && firstIndexFire != 0) {
+            return (
+              prevPassword.slice(0, firstIndexFire - 1) +
+              "🔥" +
+              prevPassword.slice(firstIndexFire)
+            );
+          } else {
+            clearInterval(burnIntervalRef.current);
+            return prevPassword;
           }
-        }, currentGame.rule10VarA);
-      }
+        });
+      }, currentGame.rule10VarA);
+    } else {
+      clearInterval(burnIntervalRef.current);
     }
 
-    return () => {
-      clearInterval(fireInterval);
-      clearTimeout(reappearTimeout);
-    };
-  }, [isFireRuleOn, isFireActive, password]);
+    return () => clearInterval(burnIntervalRef.current);
+  }, [currentGame.rule10On, burningTimeout]);
+
+  useEffect(() => {
+    if (
+      password.indexOf("🔥") === -1 &&
+      currentGame.rule10On &&
+      !burningTimeout
+    ) {
+      setBurningTimeout(true);
+      const reappearTime =
+      Math.random() * (currentGame.rule10VarC - currentGame.rule10VarB) +
+      currentGame.rule10VarB;
+      console.log("TIMEOUT BURNING: ", reappearTime);
+
+      reappearTimeoutRef.current = setTimeout(() => {
+        procFire();
+      }, reappearTime);
+      setTimeout(() => {
+        setBurningTimeout(false);
+      }, reappearTime);
+    } else {
+      clearTimeout(reappearTimeoutRef.current);
+    }
+
+    return () => clearTimeout(reappearTimeoutRef.current);
+  }, [password]);
 
   const logout = async () => {
     try {
@@ -243,9 +316,10 @@ function Main() {
         rule5Var: Math.floor(Math.random() * (30 - 20)) + 20,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 5),
         rule9Var: getValidMultiple(10, 100),
-        rule10VarA: 4000,
+        rule10VarA: 6000,
         rule10VarB: 30000,
         rule10VarC: 40000,
+        rule15Var: 2,
       }));
     } else if (difficulty === "medium") {
       setCurrentGame((currentGame) => ({
@@ -254,9 +328,10 @@ function Main() {
         rule5Var: Math.floor(Math.random() * (70 - 40 + 1)) + 40,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 3),
         rule9Var: getValidMultiple(40, 200),
-        rule10VarA: 3000,
+        rule10VarA: 4000,
         rule10VarB: 20000,
         rule10VarC: 30000,
+        rule15Var: 4,
       }));
     } else {
       setCurrentGame((currentGame) => ({
@@ -265,12 +340,12 @@ function Main() {
         rule5Var: Math.floor(Math.random() * (100 - 60)) + 60,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 1),
         rule9Var: getValidMultiple(80, 300),
-        rule10VarA: 2000,
+        rule10VarA: 3000,
         rule10VarB: 10000,
         rule10VarC: 30000,
+        rule15Var: 6,
       }));
     }
-    setLoadingData(false);
   };
 
   const handleGameLose = async () => {
@@ -308,8 +383,6 @@ function Main() {
   const handleGameWin = () => {
     setPlaying(false);
     setPopup((popup) => ({ ...popup, win: true }));
-    setDifficulty("None");
-    setDifficultyStyle("");
   };
 
   const generateRandomCountryCodes = (countryCodes, amount) => {
@@ -349,6 +422,30 @@ function Main() {
 
   const handleCaptchaImgGenerate = (img) => {
     setCurrentGame((currentGame) => ({ ...currentGame, captchaImg: img }));
+  };
+
+  const procFire = () => {
+    console.log("Proc Fire");
+
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+
+    const lastNonFireIndex =
+      password.lastIndexOf("🔥") === password.length - 1
+        ? password.slice(0, -1).search(/[^🔥]$/)
+        : password.search(/[^🔥]$/);
+
+    if (lastNonFireIndex !== -1) {
+      console.log("LastNonFireIndex: ", lastNonFireIndex);
+
+      let newPassword = password.slice(0, lastNonFireIndex) + "🔥";
+      setPassword(newPassword);
+    }
+
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   if (loading) {
@@ -542,7 +639,6 @@ function Main() {
                   className="text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
                   onClick={() => {
                     setNewGameDialog(false);
-                    setLoadGameDialog(false);
                     setResetConfirmation(false);
                     setDifficulty(newDifficulty);
                     setDifficultyStyle(newDifficultyStyle);
@@ -555,7 +651,6 @@ function Main() {
                   className="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
                   onClick={() => {
                     setNewGameDialog(false);
-                    setLoadGameDialog(false);
                     setResetConfirmation(false);
                   }}
                 >
@@ -591,6 +686,7 @@ function Main() {
                     setCount(e.target.value.length);
                   }}
                   value={password}
+                  ref={inputRef}
                 />
               </div>
               <p className="text-white absolute mr-[-550px] mb-[-20px] text-left">
