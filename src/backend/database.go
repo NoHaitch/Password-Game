@@ -2,7 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -36,7 +39,7 @@ func initDB() {
 
 	// Create history table if it does not exist
 	historyTableCreationSQL := `
-		CREATE TABLE IF NOT EXISTS history (
+			CREATE TABLE IF NOT EXISTS history (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT NOT NULL,
 			difficulty TEXT NOT NULL,
@@ -44,6 +47,14 @@ func initDB() {
 			date DATETIME DEFAULT CURRENT_TIMESTAMP,
 			password TEXT NOT NULL,
 			won BOOLEAN NOT NULL DEFAULT FALSE,
+			captcha_image BLOB,
+			flags TEXT,
+			time INTEGER,
+			char_banned TEXT,
+			rule1 INTEGER,
+			rule5 INTEGER,
+			rule9 INTEGER,
+			rule17 REAL,
 			FOREIGN KEY(username) REFERENCES users(username)
 		);
 	`
@@ -89,7 +100,7 @@ func getLeaderboard(difficulty string) ([]string, error) {
 // Get the game history for the specified username and difficulty.
 func getHistory(username, difficulty string) ([]map[string]interface{}, error) {
 	query := `
-		SELECT score, date, password, won
+		SELECT score, date, password, won, captcha_image, flags, time, char_banned, rule1, rule5, rule9, rule17
 		FROM history
 		WHERE username = ? AND difficulty = ?
 		ORDER BY date DESC;
@@ -106,15 +117,42 @@ func getHistory(username, difficulty string) ([]map[string]interface{}, error) {
 		var score int
 		var date, password string
 		var won bool
-		if err := rows.Scan(&score, &date, &password, &won); err != nil {
+		var captchaImage []byte
+		var flagsJSON string
+		var time int
+		var charBannedJSON string
+		var rule1, rule5, rule9 int
+		var rule17 float64
+
+		if err := rows.Scan(&score, &date, &password, &won, &captchaImage, &flagsJSON, &time, &charBannedJSON, &rule1, &rule5, &rule9, &rule17); err != nil {
+			return nil, err
+		}
+
+		captchaImageBase64 := base64.StdEncoding.EncodeToString(captchaImage)
+
+		var flags []string
+		if err := json.Unmarshal([]byte(flagsJSON), &flags); err != nil {
+			return nil, err
+		}
+
+		var charBanned []string
+		if err := json.Unmarshal([]byte(charBannedJSON), &charBanned); err != nil {
 			return nil, err
 		}
 
 		history = append(history, map[string]interface{}{
-			"score":    score,
-			"date":     date,
-			"password": password,
-			"won":      won,
+			"score":        score,
+			"date":         date,
+			"password":     password,
+			"won":          won,
+			"captchaImage": captchaImageBase64,
+			"flags":        flags,
+			"time":         time,
+			"charBanned":   charBanned,
+			"rule1":        rule1,
+			"rule5":        rule5,
+			"rule9":        rule9,
+			"rule17":       rule17,
 		})
 	}
 
@@ -132,9 +170,8 @@ func addUser(username string) error {
 	return err
 }
 
-// Add a game history entry for the specified username, difficulty, score, password, and won status.
-// If the username is not found, it adds the username first.
-func addGameHistory(username, difficulty string, score int, password string, won bool) error {
+// Add a game history entry
+func addGameHistory(username, difficulty string, score int, password string, won bool, captchaImage []byte, flags []string, time int, charBanned []string, rule1, rule5, rule9 int, rule17 float32) error {
 	var userExists bool
 	err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`, username).Scan(&userExists)
 	if err != nil {
@@ -147,45 +184,50 @@ func addGameHistory(username, difficulty string, score int, password string, won
 		}
 	}
 
-	query := `
-		INSERT INTO history (username, difficulty, score, password, won)
-		VALUES (?, ?, ?, ?, ?);
-	`
-
-	_, err = db.Exec(query, username, difficulty, score, password, won)
+	flagsJSON, err := json.Marshal(flags)
 	if err != nil {
 		return err
 	}
 
-	updateHighscoreQuery := fmt.Sprintf(`
-		UPDATE users
-		SET highscore_%s = CASE
-			WHEN highscore_%s < ? THEN ?
-			ELSE highscore_%s
-		END
-		WHERE username = ?;
-	`, difficulty, difficulty, difficulty)
+	charBannedJSON, err := json.Marshal(charBanned)
+	if err != nil {
+		return err
+	}
 
-	_, err = db.Exec(updateHighscoreQuery, score, score, username)
+	query := `
+		INSERT INTO history (username, difficulty, score, password, won, captcha_image, flags, time, char_banned, rule1, rule5, rule9, rule17)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	_, err = db.Exec(query, username, difficulty, score, password, won, captchaImage, flagsJSON, time, charBannedJSON, rule1, rule5, rule9, rule17)
 	return err
 }
 
-// Checks if score is a new highscore for the specified username and difficulty.
-func isNewHighScore(username, difficulty string, score int) (bool, error) {
-	query := fmt.Sprintf(`
-		SELECT highscore_%s
-		FROM users
-		WHERE username = ?;
-	`, difficulty)
+// Get the current user's highscore for a specified difficulty.
+func getHighscore(username, difficulty string) (int, error) {
+	var highscore int
 
-	var currentHighScore int
-	err := db.QueryRow(query, username).Scan(&currentHighScore)
+	query := fmt.Sprintf(`
+        SELECT highscore_%s
+        FROM users
+        WHERE username = ?;
+    `, difficulty)
+
+	err := db.QueryRow(query, username).Scan(&highscore)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return true, nil
+			return 0, nil
 		}
-		return false, err
+		return 0, err
 	}
 
-	return score > currentHighScore, nil
+	return highscore, nil
+}
+
+func base64ToBytes(base64Str string) ([]byte, error) {
+	if strings.Contains(base64Str, "data:image") {
+		parts := strings.Split(base64Str, ",")
+		base64Str = parts[1]
+	}
+
+	return base64.StdEncoding.DecodeString(base64Str)
 }

@@ -2,12 +2,10 @@ package main
 
 import (
 	"backend/rules"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/gin-contrib/cors"
@@ -129,11 +127,19 @@ func main() {
 	// Add Game History Endpoint
 	r.POST("/addGameHistory", func(c *gin.Context) {
 		var requestBody struct {
-			Username   string `json:"username"`
-			Difficulty string `json:"difficulty"`
-			Score      int    `json:"score"`
-			Password   string `json:"password"`
-			Won        bool   `json:"won"`
+			Username   string   `json:"username"`
+			Difficulty string   `json:"difficulty"`
+			Score      int      `json:"score"`
+			Password   string   `json:"password"`
+			Won        bool     `json:"won"`
+			Captcha    string   `json:"captcha"`
+			Flags      []string `json:"flags"`
+			Time       int      `json:"time"`
+			CharBanned []string `json:"charBanned"`
+			Rule1      int      `json:"rule1"`
+			Rule5      int      `json:"rule5"`
+			Rule9      int      `json:"rule9"`
+			Rule17     float32  `json:"rule17"`
 		}
 
 		if err := c.BindJSON(&requestBody); err != nil {
@@ -146,9 +152,13 @@ func main() {
 			return
 		}
 
-		fmt.Println(requestBody.Password)
+		captchaImage, err := base64ToBytes(requestBody.Captcha)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid CAPTCHA image"})
+			return
+		}
 
-		if err := addGameHistory(requestBody.Username, requestBody.Difficulty, requestBody.Score, requestBody.Password, requestBody.Won); err != nil {
+		if err := addGameHistory(requestBody.Username, requestBody.Difficulty, requestBody.Score, requestBody.Password, requestBody.Won, captchaImage, requestBody.Flags, requestBody.Time, requestBody.CharBanned, requestBody.Rule1, requestBody.Rule5, requestBody.Rule9, requestBody.Rule17); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -156,30 +166,23 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Game history added successfully"})
 	})
 
-	// Is New High Score Endpoint
-	r.GET("/isNewHighScore", func(c *gin.Context) {
+	// Get Highscore Endpoint
+	r.GET("/highscore", func(c *gin.Context) {
 		username := c.Query("username")
 		difficulty := c.Query("difficulty")
-		score := c.Query("score")
 
-		if username == "" || difficulty == "" || score == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Username, difficulty, and score query parameters are required"})
+		if username == "" || difficulty == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username and difficulty query parameters are required"})
 			return
 		}
 
-		scoreInt, err := strconv.Atoi(score)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Score must be an integer"})
-			return
-		}
-
-		isNewHighScore, err := isNewHighScore(username, difficulty, scoreInt)
+		highscore, err := getHighscore(username, difficulty)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"isNewHighScore": isNewHighScore})
+		c.JSON(http.StatusOK, gin.H{"highscore": highscore})
 	})
 
 	go func() {
