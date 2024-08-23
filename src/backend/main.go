@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/rules"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -47,7 +48,9 @@ func main() {
 			Rule9Var    int      `json:"rule9Var"`
 			Captcha     string   `json:"captcha"`
 			Rule13Var   int      `json:"rule13Var"`
+			Rule15Var   int      `json:"rule15Var"`
 			Rule15Value []string `json:"rule15Value"`
+			Rule17Var   float32  `json:"rule17Var"`
 			Rule18Var   int      `json:"rule18Var"`
 		}
 
@@ -64,8 +67,10 @@ func main() {
 		rule9Var := requestBody.Rule9Var
 		captcha := requestBody.Captcha
 		rule13Var := requestBody.Rule13Var
+		rule15Var := requestBody.Rule15Var
 		rule15Value := requestBody.Rule15Value
-		rule18Var := requestBody.Rule18Var
+		rule17Var := requestBody.Rule17Var
+		length := requestBody.Rule18Var
 
 		if password == "" {
 			PrintlnRed("[Main] Request Failed, Empty Password")
@@ -74,13 +79,14 @@ func main() {
 		}
 
 		// Main Logic
-		result, accepted, rule5Progres, rule9Progres := rules.TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var, rule15Value, rule18Var)
+		result, accepted, rule5Progres, rule9Progres, rule17Progres := rules.TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var, rule15Var, rule15Value, rule17Var, length)
 
 		c.JSON(http.StatusOK, gin.H{
-			"results":      result,
-			"accepted":     accepted,
-			"rule5Progres": rule5Progres,
-			"rule9Progres": rule9Progres,
+			"results":       result,
+			"accepted":      accepted,
+			"rule5Progres":  rule5Progres,
+			"rule9Progres":  rule9Progres,
+			"rule17Progres": rule17Progres,
 		})
 	})
 
@@ -139,6 +145,8 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Username, difficulty, score, and password fields are required"})
 			return
 		}
+
+		fmt.Println(requestBody.Password)
 
 		if err := addGameHistory(requestBody.Username, requestBody.Difficulty, requestBody.Score, requestBody.Password, requestBody.Won); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

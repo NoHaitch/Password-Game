@@ -1,11 +1,22 @@
 package rules
 
-import "fmt"
+import (
+	"strings"
+)
 
 // Rule 15 – A sacrifice must be made. Pick X letters that you will no longer be able to use
-func rule15(password string, chars []string) bool {
-	fmt.Println(chars)
-	return !containChars(password, chars)
+func rule15(password string, rule15Var int, chars []string) bool {
+	if len(chars) < rule15Var {
+		return false
+	}
+
+	lowerPassword := strings.ToLower(password)
+	lowerChars := make([]string, len(chars))
+	for i, c := range chars {
+		lowerChars[i] = strings.ToLower(c)
+	}
+
+	return !containChars(lowerPassword, lowerChars)
 }
 
 // Check if string contains a list of characters
