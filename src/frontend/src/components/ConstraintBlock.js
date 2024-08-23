@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { IoCheckmark, IoClose } from "react-icons/io5";
 import FlagDisplay from "./FlagDisplay";
 import CaptchaGenerator from "./CaptchaGenerator";
+import CharPicker from "./CharPicker";
 
 const ConstraintBlock = (props) => {
   const handleCaptchaGenerate = (captchaText) => {
@@ -10,7 +11,7 @@ const ConstraintBlock = (props) => {
 
   const handleImageGenerate = (image) => {
     props.onCaptchaImageGenerate(image);
-  }
+  };
 
   var content = "";
   switch (props.ruleNumber) {
@@ -116,24 +117,29 @@ const ConstraintBlock = (props) => {
     case "13":
       content = (
         <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          Your password must include a leap year. The year must be above {props.data.rule13Var}.
+          Your password must include a leap year. The year must be above{" "}
+          {props.data.rule13Var}.
         </p>
       );
       break;
     case "14":
       content = (
         <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          🐔 Paul has hatched ! Please don’t forget to feed him. He eats X 🐛
-          every Y second
+          🐔 Paul has hatched ! Please don’t forget to feed him. He eats {props.data.rule14FeedCount} 🐛
+          every {props.data.rule14Timeout / 1000} second
         </p>
       );
       break;
     case "15":
       content = (
-        <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          A sacrifice must be made. Pick {props.data.rule15Var} letters that you will no longer be
-          able to use
-        </p>
+        <div className="bg-[#1E1F20] rounded-sm text-sm p-2">
+          <h1>
+            A sacrifice must be made. Pick {props.data.rule15Var} letters that
+            you will no longer be able to use.
+          </h1>
+
+          <CharPicker charLimit={props.data.rule15Var} onPick={props.onLetterPick}/>
+        </div>
       );
       break;
     case "16":
@@ -146,9 +152,16 @@ const ConstraintBlock = (props) => {
       break;
     case "17":
       content = (
-        <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          At least X% of your password must be in digits
-        </p>
+        <div className="bg-[#1E1F20] rounded-sm text-sm p-2">
+          <h1>
+            At least {props.data.rule17Var * 100}% of your password must be in
+            digits
+          </h1>
+          <h1>
+            Currently the percentage is:{" "}
+            {props.data.rule17Progres ? props.data.rule17Progres * 100 : 0}%
+          </h1>
+        </div>
       );
       break;
     case "18":
@@ -168,7 +181,8 @@ const ConstraintBlock = (props) => {
     case "20":
       content = (
         <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          Your password must include the current time using the 24-hour format "hour:minute"
+          Your password must include the current time using the 24-hour format
+          "hour:minute"
         </p>
       );
       break;

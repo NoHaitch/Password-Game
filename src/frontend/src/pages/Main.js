@@ -22,7 +22,7 @@ function Main() {
   const [score, setScore] = useState(0);
   const [password, setPassword] = useState("");
   const inputRef = useRef(null);
-  const [HighestLevel, setHighestLevel] = useState(9);
+  const [HighestLevel, setHighestLevel] = useState(17);
   const [constraints, setConstraints] = useState(Array(20).fill(false));
   const [currentGame, setCurrentGame] = useState({
     rule1Var: 0,
@@ -41,8 +41,11 @@ function Main() {
     captchaImg: "",
     rule13Var: 1000,
     rule14On: false,
+    rule14FeedCount: 0,
+    rule14Timeout: 0,
     rule15Var: 0,
     rule15Value: [],
+    Rule17Var: 0,
   });
 
   const oneWordCountryCodes = [
@@ -86,6 +89,7 @@ function Main() {
   const [count, setCount] = useState(0);
   const [burningTimeout, setBurningTimeout] = useState(false);
   const burnIntervalRef = useRef(null);
+  const FeedIntervalRef = useRef(null);
   const reappearTimeoutRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -108,189 +112,6 @@ function Main() {
   const [newDifficultyStyle, setNewDifficultyStyle] = useState("");
   const [loseMessage, setLoseMessage] = useState("");
 
-  useEffect(() => {
-    const authenticated = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-        setLoading(false);
-      } else {
-        navigate("/");
-      }
-    });
-
-    return () => authenticated();
-  }, [navigate]);
-
-  useEffect(() => {
-    let interval;
-
-    if (playing) {
-      if (!password) {
-        setConstraints(Array(20).fill(false));
-      } else {
-        interval = setInterval(() => {
-          fetch("http://localhost:8080/main", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              password,
-              rule1Var: currentGame.rule1Var,
-              rule5Var: currentGame.rule5Var,
-              rule8Var: currentGame.rule8Var,
-              rule9Var: currentGame.rule9Var,
-              captcha: currentGame.captchaValue,
-              rule13Var: currentGame.rule13Var,
-              rule15Value: currentGame.rule15Value,
-              rule18Var: password.length,
-            }),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              for (let i = 0; i <= 20; i++) {
-                if (!data.results[i]) {
-                  if (i + 1 > HighestLevel) {
-                    setHighestLevel(i + 1);
-                  }
-                  break;
-                }
-              }
-
-              if (HighestLevel > 20) {
-                handleGameWin();
-              } else {
-                setCurrentGame((currentGame) => ({
-                  ...currentGame,
-                  rule5Progres: data.rule5Progres,
-                  rule9Progres: data.rule9Progres,
-                }));
-
-                if (
-                  currentGame.rule11On &&
-                  !currentGame.rule14On &&
-                  currentGame.rule11Trigger &&
-                  !data.results[10]
-                ) {
-                  setLoseMessage("You lost the egg!");
-                  handleGameLose();
-                }
-
-                if (
-                  !currentGame.rule11Trigger &&
-                  currentGame.rule11On &&
-                  data.results[10]
-                ) {
-                  setCurrentGame((currentGame) => ({
-                    ...currentGame,
-                    rule11Trigger: true,
-                  }));
-                }
-
-                if (!currentGame.rule10On && HighestLevel >= 10) {
-                  setCurrentGame((currentGame) => ({
-                    ...currentGame,
-                    rule10On: true,
-                  }));
-                }
-
-                if (
-                  !currentGame.rule11On &&
-                  HighestLevel >= 11 &&
-                  !HighestLevel < 14
-                ) {
-                  setCurrentGame((currentGame) => ({
-                    ...currentGame,
-                    rule11On: true,
-                  }));
-                  procFire();
-                }
-
-                if (!currentGame.rule14On && HighestLevel >= 14) {
-                  let newPassword = password;
-                  newPassword = newPassword.replace(/🥚/, "🐔");
-                  setPassword(newPassword);
-                  setCurrentGame((currentGame) => ({
-                    ...currentGame,
-                    rule11On: false,
-                    rule14On: true,
-                  }));
-                }
-              }
-              setConstraints(data.results || Array(20).fill(false));
-            })
-            .catch((error) => {
-              console.error("Error:", error);
-            });
-        }, 1000);
-      }
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [playing, password, HighestLevel, currentGame.captchaValue]);
-
-  useEffect(() => {
-    console.log(burningTimeout)
-    if (difficulty !== "") {
-      handleGameStart();
-    }
-  }, [difficulty, burningTimeout]);
-
-  useEffect(() => {
-    if (currentGame.rule10On) {
-      console.log("TRIGER fire spread: ", currentGame.rule10VarA);
-
-      burnIntervalRef.current = setInterval(() => {
-        setPassword((prevPassword) => {
-          const firstIndexFire = prevPassword.indexOf("🔥");
-          console.log("LastIndexFire: ", firstIndexFire);
-
-          if (firstIndexFire !== -1 && firstIndexFire != 0) {
-            return (
-              prevPassword.slice(0, firstIndexFire - 1) +
-              "🔥" +
-              prevPassword.slice(firstIndexFire)
-            );
-          } else {
-            clearInterval(burnIntervalRef.current);
-            return prevPassword;
-          }
-        });
-      }, currentGame.rule10VarA);
-    } else {
-      clearInterval(burnIntervalRef.current);
-    }
-
-    return () => clearInterval(burnIntervalRef.current);
-  }, [currentGame.rule10On, burningTimeout]);
-
-  useEffect(() => {
-    if (
-      password.indexOf("🔥") === -1 &&
-      currentGame.rule10On &&
-      !burningTimeout
-    ) {
-      setBurningTimeout(true);
-      const reappearTime =
-      Math.random() * (currentGame.rule10VarC - currentGame.rule10VarB) +
-      currentGame.rule10VarB;
-      console.log("TIMEOUT BURNING: ", reappearTime);
-
-      reappearTimeoutRef.current = setTimeout(() => {
-        procFire();
-      }, reappearTime);
-      setTimeout(() => {
-        setBurningTimeout(false);
-      }, reappearTime);
-    } else {
-      clearTimeout(reappearTimeoutRef.current);
-    }
-
-    return () => clearTimeout(reappearTimeoutRef.current);
-  }, [password]);
-
   const logout = async () => {
     try {
       await signOut(auth);
@@ -308,7 +129,35 @@ function Main() {
     }));
   };
 
+  const resetCurrentGame = () => {
+    setPassword("");
+    setCurrentGame({
+      rule1Var: 0,
+      rule5Var: 0,
+      rule5Progres: 0,
+      rule8Var: [],
+      rule9Var: 0,
+      rule9Progres: 0,
+      rule10On: false,
+      rule10VarA: 0,
+      rule10VarB: 0,
+      rule10VarC: 0,
+      rule11Trigger: false,
+      rule11On: false,
+      captchaValue: ",./';]",
+      captchaImg: "",
+      rule13Var: 1000,
+      rule14On: false,
+      rule14FeedCount: 0,
+      rule14Timeout: 0,
+      rule15Var: 0,
+      rule15Value: [],
+      Rule17Var: 0,
+    });
+  };
+
   const handleGameStart = () => {
+    resetCurrentGame();
     if (difficulty === "easy") {
       setCurrentGame((currentGame) => ({
         ...currentGame,
@@ -319,7 +168,10 @@ function Main() {
         rule10VarA: 6000,
         rule10VarB: 30000,
         rule10VarC: 40000,
+        rule14FeedCount: 2,
+        rule14Timeout: 30000,
         rule15Var: 2,
+        rule17Var: Math.round(Math.random() * (0.5 - 0.1) + 0.1 * 100) / 100,
       }));
     } else if (difficulty === "medium") {
       setCurrentGame((currentGame) => ({
@@ -331,7 +183,10 @@ function Main() {
         rule10VarA: 4000,
         rule10VarB: 20000,
         rule10VarC: 30000,
+        rule14FeedCount: 3,
+        rule14Timeout: 25000,
         rule15Var: 4,
+        rule17Var: Math.round(Math.random() * (0.1 - 0.2) + 0.2 * 100) / 100,
       }));
     } else {
       setCurrentGame((currentGame) => ({
@@ -343,7 +198,10 @@ function Main() {
         rule10VarA: 3000,
         rule10VarB: 10000,
         rule10VarC: 30000,
+        rule14FeedCount: 2,
+        rule14Timeout: 15000,
         rule15Var: 6,
+        rule17Var: Math.round(Math.random() * (0.15 - 0.3) + 0.3 * 100) / 100,
       }));
     }
   };
@@ -424,9 +282,14 @@ function Main() {
     setCurrentGame((currentGame) => ({ ...currentGame, captchaImg: img }));
   };
 
-  const procFire = () => {
-    console.log("Proc Fire");
+  const handleCharPick = (chosenChars) => {
+    setCurrentGame((currentGame) => ({
+      ...currentGame,
+      rule15Value: chosenChars,
+    }));
+  };
 
+  const procFire = () => {
     if (inputRef.current) {
       inputRef.current.blur();
     }
@@ -437,8 +300,6 @@ function Main() {
         : password.search(/[^🔥]$/);
 
     if (lastNonFireIndex !== -1) {
-      console.log("LastNonFireIndex: ", lastNonFireIndex);
-
       let newPassword = password.slice(0, lastNonFireIndex) + "🔥";
       setPassword(newPassword);
     }
@@ -447,6 +308,217 @@ function Main() {
       inputRef.current.focus();
     }
   };
+
+  useEffect(() => {
+    const authenticated = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+        setLoading(false);
+      } else {
+        navigate("/");
+      }
+    });
+
+    return () => authenticated();
+  }, [navigate]);
+
+  useEffect(() => {
+    let interval;
+
+    if (playing) {
+      if (!password) {
+        setConstraints(Array(20).fill(false));
+      } else {
+        interval = setInterval(() => {
+          fetch("http://localhost:8080/main", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              password,
+              rule1Var: currentGame.rule1Var,
+              rule5Var: currentGame.rule5Var,
+              rule8Var: currentGame.rule8Var,
+              rule9Var: currentGame.rule9Var,
+              captcha: currentGame.captchaValue,
+              rule13Var: currentGame.rule13Var,
+              rule15Var: currentGame.rule15Var,
+              rule15Value: currentGame.rule15Value,
+              rule17Var: currentGame.rule17Var,
+              rule18Var: password.length,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              for (let i = 0; i <= 20; i++) {
+                if (!data.results[i]) {
+                  if (i + 1 > HighestLevel) {
+                    setHighestLevel(i + 1);
+                  }
+                  break;
+                }
+              }
+
+              if (HighestLevel > 20) {
+                handleGameWin();
+              } else {
+                setCurrentGame((currentGame) => ({
+                  ...currentGame,
+                  rule5Progres: data.rule5Progres,
+                  rule9Progres: data.rule9Progres,
+                  rule17Progres: data.rule17Progres,
+                }));
+
+                if (
+                  currentGame.rule11On &&
+                  !currentGame.rule14On &&
+                  currentGame.rule11Trigger &&
+                  !data.results[10]
+                ) {
+                  setLoseMessage("You lost the egg!");
+                  handleGameLose();
+                }
+
+                if (currentGame.rule14On && !data.results[13]) {
+                  setLoseMessage("You lost the chicken!");
+                  handleGameLose();
+                }
+
+                if (
+                  !currentGame.rule11Trigger &&
+                  currentGame.rule11On &&
+                  data.results[10]
+                ) {
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule11Trigger: true,
+                  }));
+                }
+
+                if (!currentGame.rule10On && HighestLevel >= 10) {
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule10On: true,
+                  }));
+                }
+
+                if (
+                  !currentGame.rule11On &&
+                  HighestLevel >= 11 &&
+                  !HighestLevel < 14
+                ) {
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule11On: true,
+                  }));
+                  procFire();
+                }
+
+                if (!currentGame.rule14On && HighestLevel >= 14) {
+                  let newPassword = password;
+                  newPassword = newPassword.replace(/🥚/, "🐔");
+                  setPassword(newPassword);
+                  setCurrentGame((currentGame) => ({
+                    ...currentGame,
+                    rule11On: false,
+                    rule14On: true,
+                  }));
+                }
+              }
+              setConstraints(data.results || Array(20).fill(false));
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        }, 1000);
+      }
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [playing, password, HighestLevel, currentGame]);
+
+  useEffect(() => {
+    if (difficulty !== "") {
+      handleGameStart();
+    }
+  }, [difficulty]);
+
+  useEffect(() => {
+    if (currentGame.rule10On) {
+      burnIntervalRef.current = setInterval(() => {
+        setPassword((prevPassword) => {
+          const firstIndexFire = prevPassword.indexOf("🔥");
+          if (firstIndexFire !== -1 && firstIndexFire != 0) {
+            return (
+              prevPassword.slice(0, firstIndexFire - 1) +
+              "🔥" +
+              prevPassword.slice(firstIndexFire)
+            );
+          } else {
+            clearInterval(burnIntervalRef.current);
+            return prevPassword;
+          }
+        });
+      }, currentGame.rule10VarA);
+    } else {
+      clearInterval(burnIntervalRef.current);
+    }
+
+    return () => clearInterval(burnIntervalRef.current);
+  }, [currentGame.rule10On, burningTimeout]);
+
+  useEffect(() => {
+    if (
+      password.indexOf("🔥") === -1 &&
+      currentGame.rule10On &&
+      !burningTimeout
+    ) {
+      setBurningTimeout(true);
+      const reappearTime =
+        Math.random() * (currentGame.rule10VarC - currentGame.rule10VarB) +
+        currentGame.rule10VarB;
+
+      reappearTimeoutRef.current = setTimeout(() => {
+        procFire();
+      }, reappearTime);
+      setTimeout(() => {
+        setBurningTimeout(false);
+      }, reappearTime);
+    } else {
+      clearTimeout(reappearTimeoutRef.current);
+    }
+
+    return () => clearTimeout(reappearTimeoutRef.current);
+  }, [password]);
+
+  useEffect(() => {
+    if (currentGame.rule14On) {
+      FeedIntervalRef.current = setInterval(() => {
+        setPassword((prevPassword) => {
+          let wormCount = (prevPassword.match(/🐛/g) || []).length;
+
+          if (wormCount >= currentGame.rule14FeedCount) {
+            let newPassword = prevPassword;
+            for (let i = 0; i < currentGame.rule14FeedCount; i++) {
+              newPassword = newPassword.replace(/🐛/, "");
+            }
+            return newPassword;
+          } else {
+            setLoseMessage("You forgot to feed the chicken!");
+            handleGameLose();
+            return prevPassword;
+          }
+        });
+      }, currentGame.rule14Timeout);
+    } else {
+      clearInterval(FeedIntervalRef.current);
+    }
+
+    return () => clearInterval(FeedIntervalRef.current);
+  }, [currentGame.rule14On, currentGame.rule14Timeout, password]);
 
   if (loading) {
     return (
@@ -798,6 +870,7 @@ function Main() {
                 ruleNumber="15"
                 state={constraints[14]}
                 data={currentGame}
+                onLetterPick={handleCharPick}
               />
             )}
             {16 <= HighestLevel && (
@@ -972,7 +1045,7 @@ function Main() {
 
         {popup.history && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
-            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[800px]">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[1000px]">
               <button
                 type="button"
                 className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"

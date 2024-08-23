@@ -103,32 +103,34 @@ function History() {
         </div>
       ) : (
         <div className="flex justify-center overflow-x-auto">
-          <table className="min-w-full shadow-md rounded-lg bg-black bg-opacity-5 m-2">
-            <thead>
-              <tr className="uppercase text-sm leading-normal border-b text-white">
-                <th className="py-3 px-6 text-center">Score</th>
-                <th className="py-3 px-6 text-center">Date</th>
-                <th className="py-3 px-6 text-center">Time</th>
-                <th className="py-3 px-6 text-center">Won</th>
-                <th className="py-3 px-6 text-center">Password</th>
-              </tr>
-            </thead>
-            <tbody className="">
-              {history.map((game, index) => (
-                <tr key={index} className="border-b text-slate-300">
-                  <td className="py-3 px-6 text-center">{game.score}</td>
-                  <td className="py-3 px-6 text-center">{game.date.split('T')[0]}</td>
-                  <td className="py-3 px-6 text-center">{game.time}</td>
-                  <td className="py-3 px-6 text-center">
-                    {game.isWon ? "Yes" : "No"}
-                  </td>
-                  <td className="py-3 px-6 text-center">
-                    {game.isWon ? game.password : "-"}
-                  </td>
+          <div className="w-full h-80 overflow-y-auto">
+            <table className="min-w-full shadow-md rounded-lg bg-black bg-opacity-5">
+              <thead>
+                <tr className="uppercase text-sm leading-normal border-b text-white">
+                  <th className="py-3 px-6 text-center">Date</th>
+                  <th className="py-3 px-6 text-center">Score</th>
+                  <th className="py-3 px-6 text-center">Time</th>
+                  <th className="py-3 px-6 text-center">Won</th>
+                  <th className="py-3 px-6 text-center">Password</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {history.map((game, index) => (
+                  <tr key={index} className="border-b text-slate-300">
+                    <td className="py-3 px-6 text-center">{game.date.split('T')[0]}</td>
+                    <td className="py-3 px-6 text-center">{game.score}</td>
+                    <td className="py-3 px-6 text-center">{game.time}</td>
+                    <td className="py-3 px-6 text-center">
+                      {game.isWon ? "Win" : "Lose"}
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      {game.password}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
