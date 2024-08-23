@@ -15,14 +15,19 @@ import Title from "../components/Title";
 import ConstraintBlock from "../components/ConstraintBlock";
 import Leaderboard from "../components/Leaderboard";
 import History from "../components/History";
+import Timer from "../components/Timer";
 
 function Main() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(0);
+  const [timerTimer, setTimerTime] = useState(0);
+  const [highscore, setHighscore] = useState(null);
+  const [timerToggle, setTimerToggle] = useState(false);
   const [password, setPassword] = useState("");
   const inputRef = useRef(null);
-  const [HighestLevel, setHighestLevel] = useState(17);
+  const timerRef = useRef(null);
+  const [HighestLevel, setHighestLevel] = useState(1);
   const [constraints, setConstraints] = useState(Array(20).fill(false));
   const [currentGame, setCurrentGame] = useState({
     rule1Var: 0,
@@ -131,6 +136,7 @@ function Main() {
 
   const resetCurrentGame = () => {
     setPassword("");
+    setHighestLevel(1);
     setCurrentGame({
       rule1Var: 0,
       rule5Var: 0,
@@ -156,8 +162,17 @@ function Main() {
     });
   };
 
+  const handleTimeChange = (newTime) => {
+    setTimerTime(newTime);
+  };
+
   const handleGameStart = () => {
+    setTimerTime(0);
+    if (timerRef.current) {
+      timerRef.current.setTimerTime(0);
+    }
     resetCurrentGame();
+    setTimerToggle(true);
     if (difficulty === "easy") {
       setCurrentGame((currentGame) => ({
         ...currentGame,
@@ -207,6 +222,8 @@ function Main() {
   };
 
   const handleGameLose = async () => {
+    if (!playing) return;
+    setTimerToggle(false);
     setPlaying(false);
     setPopup((popup) => ({ ...popup, lose: true }));
 
@@ -238,9 +255,38 @@ function Main() {
     }
   };
 
-  const handleGameWin = () => {
+  const handleGameWin = async () => {
+    if (!playing) return;
+    setTimerToggle(false);
     setPlaying(false);
     setPopup((popup) => ({ ...popup, win: true }));
+
+    const historyData = {
+      username: user?.email,
+      difficulty: difficulty,
+      score: score,
+      password: password,
+      won: true,
+    };
+
+    try {
+      const response = await fetch("http://localhost:8080/addGameHistory", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(historyData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Game history added successfully:", data);
+      } else {
+        console.error("Failed to add game history:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error adding game history:", error);
+    }
   };
 
   const generateRandomCountryCodes = (countryCodes, amount) => {
@@ -426,7 +472,18 @@ function Main() {
                   }));
                 }
               }
+
               setConstraints(data.results || Array(20).fill(false));
+
+              // TEXT HIGHLIGHTING
+              // Rule 5 --> highlight numbers
+              // Rule 9 --> highlight roman numerals
+              // Rule 10 --> Fire
+              // rule 14 --> ? if feed less then count
+              // rule 15 --> highlight char choosen
+              // rule 17 --> highlight numbers
+              // rule 18 --> highlight every char
+              // rule 19 --> highlight counter
             })
             .catch((error) => {
               console.error("Error:", error);
@@ -441,7 +498,7 @@ function Main() {
   }, [playing, password, HighestLevel, currentGame]);
 
   useEffect(() => {
-    if (difficulty !== "") {
+    if (difficulty !== "None") {
       handleGameStart();
     }
   }, [difficulty]);
@@ -519,6 +576,30 @@ function Main() {
 
     return () => clearInterval(FeedIntervalRef.current);
   }, [currentGame.rule14On, currentGame.rule14Timeout, password]);
+
+  useEffect(() => {
+    if ((popup.lose || popup.win ) && difficulty !== "None") {
+      console.log("FETCHING HIGHSCORE");
+
+      const fetchHighscore = async () => {
+        try {
+          const response = await fetch(
+            `http://localhost:8080/highscore?username=${user?.email}&difficulty=${difficulty}`
+          );
+          if (!response.ok) {
+            throw new Error("Failed to fetch highscore");
+          }
+          const data = await response.json();
+          console.log(data.highscore);
+          setHighscore(data.highscore);
+        } catch (error) {
+          console.error("Error fetching highscore:", error);
+        }
+      };
+
+      fetchHighscore();
+    }
+  }, [popup.lose, popup.win, user?.email, difficulty]);
 
   if (loading) {
     return (
@@ -714,6 +795,7 @@ function Main() {
                     setResetConfirmation(false);
                     setDifficulty(newDifficulty);
                     setDifficultyStyle(newDifficultyStyle);
+                    handleGameStart();
                   }}
                 >
                   Confirm
@@ -765,151 +847,313 @@ function Main() {
                 {count}
               </p>
             </div>
-            {1 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="1"
-                state={constraints[0]}
-                data={currentGame}
-              />
-            )}
-            {2 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="2"
-                state={constraints[1]}
-                data={currentGame}
-              />
-            )}
-            {3 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="3"
-                state={constraints[2]}
-                data={currentGame}
-              />
-            )}
-            {4 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="4"
-                state={constraints[3]}
-                data={currentGame}
-              />
-            )}
-            {5 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="5"
-                state={constraints[4]}
-                data={currentGame}
-              />
-            )}
-            {6 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="6"
-                state={constraints[5]}
-                data={currentGame}
-              />
-            )}
-            {7 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="7"
-                state={constraints[6]}
-                data={currentGame}
-              />
-            )}
-            {8 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="8"
-                state={constraints[7]}
-                data={currentGame}
-              />
-            )}
-            {9 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="9"
-                state={constraints[8]}
-                data={currentGame}
-              />
-            )}
-            {10 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="10"
-                state={constraints[9]}
-                data={currentGame}
-              />
-            )}
-            {11 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="11"
-                state={constraints[10]}
-                data={currentGame}
-              />
-            )}
-            {12 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="12"
-                state={constraints[11]}
-                data={currentGame}
-                onCaptchaGenerate={handleCaptchaGenerate}
-                onCaptchaImageGenerate={handleCaptchaImgGenerate}
-              />
-            )}
-            {13 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="13"
-                state={constraints[12]}
-                data={currentGame}
-              />
-            )}
-            {14 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="14"
-                state={constraints[13]}
-                data={currentGame}
-              />
-            )}
-            {15 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="15"
-                state={constraints[14]}
-                data={currentGame}
-                onLetterPick={handleCharPick}
-              />
-            )}
-            {16 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="16"
-                state={constraints[15]}
-                data={currentGame}
-              />
-            )}
-            {17 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="17"
-                state={constraints[16]}
-                data={currentGame}
-              />
-            )}
-            {18 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="18"
-                state={constraints[17]}
-                data={currentGame}
-              />
-            )}
-            {19 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="19"
-                state={constraints[18]}
-                data={currentGame}
-              />
-            )}
-            {20 <= HighestLevel && (
-              <ConstraintBlock
-                ruleNumber="20"
-                state={constraints[19]}
-                data={currentGame}
-              />
-            )}
+            <>
+              {1 <= HighestLevel && !constraints[0] && (
+                <ConstraintBlock
+                  ruleNumber="1"
+                  state={constraints[0]}
+                  data={currentGame}
+                />
+              )}
+              {2 <= HighestLevel && !constraints[1] && (
+                <ConstraintBlock
+                  ruleNumber="2"
+                  state={constraints[1]}
+                  data={currentGame}
+                />
+              )}
+              {3 <= HighestLevel && !constraints[2] && (
+                <ConstraintBlock
+                  ruleNumber="3"
+                  state={constraints[2]}
+                  data={currentGame}
+                />
+              )}
+              {4 <= HighestLevel && !constraints[3] && (
+                <ConstraintBlock
+                  ruleNumber="4"
+                  state={constraints[3]}
+                  data={currentGame}
+                />
+              )}
+              {5 <= HighestLevel && !constraints[4] && (
+                <ConstraintBlock
+                  ruleNumber="5"
+                  state={constraints[4]}
+                  data={currentGame}
+                />
+              )}
+              {6 <= HighestLevel && !constraints[5] && (
+                <ConstraintBlock
+                  ruleNumber="6"
+                  state={constraints[5]}
+                  data={currentGame}
+                />
+              )}
+              {7 <= HighestLevel && !constraints[6] && (
+                <ConstraintBlock
+                  ruleNumber="7"
+                  state={constraints[6]}
+                  data={currentGame}
+                />
+              )}
+              {8 <= HighestLevel && !constraints[7] && (
+                <ConstraintBlock
+                  ruleNumber="8"
+                  state={constraints[7]}
+                  data={currentGame}
+                />
+              )}
+              {9 <= HighestLevel && !constraints[8] && (
+                <ConstraintBlock
+                  ruleNumber="9"
+                  state={constraints[8]}
+                  data={currentGame}
+                />
+              )}
+              {10 <= HighestLevel && !constraints[9] && (
+                <ConstraintBlock
+                  ruleNumber="10"
+                  state={constraints[9]}
+                  data={currentGame}
+                />
+              )}
+              {11 <= HighestLevel && !constraints[10] && (
+                <ConstraintBlock
+                  ruleNumber="11"
+                  state={constraints[10]}
+                  data={currentGame}
+                />
+              )}
+              {12 <= HighestLevel && !constraints[11] && (
+                <ConstraintBlock
+                  ruleNumber="12"
+                  state={constraints[11]}
+                  data={currentGame}
+                  onCaptchaGenerate={handleCaptchaGenerate}
+                  onCaptchaImageGenerate={handleCaptchaImgGenerate}
+                  initialCaptchaText={currentGame.captchaValue}
+                  initialCaptchaImage={currentGame.captchaImg}
+                />
+              )}
+              {13 <= HighestLevel && !constraints[12] && (
+                <ConstraintBlock
+                  ruleNumber="13"
+                  state={constraints[12]}
+                  data={currentGame}
+                />
+              )}
+              {14 <= HighestLevel && !constraints[13] && (
+                <ConstraintBlock
+                  ruleNumber="14"
+                  state={constraints[13]}
+                  data={currentGame}
+                />
+              )}
+              {15 <= HighestLevel && !constraints[14] && (
+                <ConstraintBlock
+                  ruleNumber="15"
+                  state={constraints[14]}
+                  data={currentGame}
+                  onLetterPick={handleCharPick}
+                  initialSelection={currentGame.rule15Value}
+                />
+              )}
+              {16 <= HighestLevel && !constraints[15] && (
+                <ConstraintBlock
+                  ruleNumber="16"
+                  state={constraints[15]}
+                  data={currentGame}
+                />
+              )}
+              {17 <= HighestLevel && !constraints[16] && (
+                <ConstraintBlock
+                  ruleNumber="17"
+                  state={constraints[16]}
+                  data={currentGame}
+                />
+              )}
+              {18 <= HighestLevel && !constraints[17] && (
+                <ConstraintBlock
+                  ruleNumber="18"
+                  state={constraints[17]}
+                  data={currentGame}
+                />
+              )}
+              {19 <= HighestLevel && !constraints[18] && (
+                <ConstraintBlock
+                  ruleNumber="19"
+                  state={constraints[18]}
+                  data={currentGame}
+                />
+              )}
+              {20 <= HighestLevel && !constraints[19] && (
+                <ConstraintBlock
+                  ruleNumber="20"
+                  state={constraints[19]}
+                  data={currentGame}
+                />
+              )}
+            </>
+            <div className="flex flex-col-reverse">
+              {1 <= HighestLevel && constraints[0] && (
+                <ConstraintBlock
+                  ruleNumber="1"
+                  state={constraints[0]}
+                  data={currentGame}
+                />
+              )}
+              {2 <= HighestLevel && constraints[1] && (
+                <ConstraintBlock
+                  ruleNumber="2"
+                  state={constraints[1]}
+                  data={currentGame}
+                />
+              )}
+              {3 <= HighestLevel && constraints[2] && (
+                <ConstraintBlock
+                  ruleNumber="3"
+                  state={constraints[2]}
+                  data={currentGame}
+                />
+              )}
+              {4 <= HighestLevel && constraints[3] && (
+                <ConstraintBlock
+                  ruleNumber="4"
+                  state={constraints[3]}
+                  data={currentGame}
+                />
+              )}
+              {5 <= HighestLevel && constraints[4] && (
+                <ConstraintBlock
+                  ruleNumber="5"
+                  state={constraints[4]}
+                  data={currentGame}
+                />
+              )}
+              {6 <= HighestLevel && constraints[5] && (
+                <ConstraintBlock
+                  ruleNumber="6"
+                  state={constraints[5]}
+                  data={currentGame}
+                />
+              )}
+              {7 <= HighestLevel && constraints[6] && (
+                <ConstraintBlock
+                  ruleNumber="7"
+                  state={constraints[6]}
+                  data={currentGame}
+                />
+              )}
+              {8 <= HighestLevel && constraints[7] && (
+                <ConstraintBlock
+                  ruleNumber="8"
+                  state={constraints[7]}
+                  data={currentGame}
+                />
+              )}
+              {9 <= HighestLevel && constraints[8] && (
+                <ConstraintBlock
+                  ruleNumber="9"
+                  state={constraints[8]}
+                  data={currentGame}
+                />
+              )}
+              {10 <= HighestLevel && constraints[9] && (
+                <ConstraintBlock
+                  ruleNumber="10"
+                  state={constraints[9]}
+                  data={currentGame}
+                />
+              )}
+              {11 <= HighestLevel && constraints[10] && (
+                <ConstraintBlock
+                  ruleNumber="11"
+                  state={constraints[10]}
+                  data={currentGame}
+                />
+              )}
+              {12 <= HighestLevel && constraints[11] && (
+                <ConstraintBlock
+                  ruleNumber="12"
+                  state={constraints[11]}
+                  data={currentGame}
+                  onCaptchaGenerate={handleCaptchaGenerate}
+                  onCaptchaImageGenerate={handleCaptchaImgGenerate}
+                  initialCaptchaText={currentGame.captchaValue}
+                  initialCaptchaImage={currentGame.captchaImg}
+                />
+              )}
+              {13 <= HighestLevel && constraints[12] && (
+                <ConstraintBlock
+                  ruleNumber="13"
+                  state={constraints[12]}
+                  data={currentGame}
+                />
+              )}
+              {14 <= HighestLevel && constraints[13] && (
+                <ConstraintBlock
+                  ruleNumber="14"
+                  state={constraints[13]}
+                  data={currentGame}
+                />
+              )}
+              {15 <= HighestLevel && constraints[14] && (
+                <ConstraintBlock
+                  ruleNumber="15"
+                  state={constraints[14]}
+                  data={currentGame}
+                  onLetterPick={handleCharPick}
+                  initialSelection={currentGame.rule15Value}
+                />
+              )}
+              {16 <= HighestLevel && constraints[15] && (
+                <ConstraintBlock
+                  ruleNumber="16"
+                  state={constraints[15]}
+                  data={currentGame}
+                />
+              )}
+              {17 <= HighestLevel && constraints[16] && (
+                <ConstraintBlock
+                  ruleNumber="17"
+                  state={constraints[16]}
+                  data={currentGame}
+                />
+              )}
+              {18 <= HighestLevel && constraints[17] && (
+                <ConstraintBlock
+                  ruleNumber="18"
+                  state={constraints[17]}
+                  data={currentGame}
+                />
+              )}
+              {19 <= HighestLevel && constraints[18] && (
+                <ConstraintBlock
+                  ruleNumber="19"
+                  state={constraints[18]}
+                  data={currentGame}
+                />
+              )}
+              {20 <= HighestLevel && constraints[19] && (
+                <ConstraintBlock
+                  ruleNumber="20"
+                  state={constraints[19]}
+                  data={currentGame}
+                />
+              )}
+            </div>
           </>
         )}
+
+        <div className="absolute right-5 top-5 scale-[0.85]">
+          <Timer
+            isActive={timerToggle}
+            ref={timerRef}
+            onTimeUpdate={(time) => setTimerTime(time)}
+            onTimeChange={handleTimeChange}
+          />
+        </div>
 
         {popup.lose && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
@@ -936,7 +1180,18 @@ function Main() {
                 </svg>
               </button>
               <h1 className="m-2 text-xl">You Lose!</h1>
+              <h1 className="m-2 text-gray-400">Difficulty: {difficulty}</h1>
               <h1 className="m-2 text-xl text-red-500">{loseMessage}</h1>
+              <h1 className="my-4 font-bold text-xl">Score: {score}</h1>
+              {highscore !== null && (
+                <h1 className="mt-2 text-gray-200">
+                  {score > highscore
+                    ? "New Highscore!"
+                    : score === highscore
+                    ? `You've reached your highscore of ${highscore}`
+                    : `Highscore: ${highscore}`}
+                </h1>
+              )}
               <h1 className="m-2 text-gray-400 text-xs">
                 Use the side menu to make a new game
               </h1>
@@ -968,12 +1223,21 @@ function Main() {
                   />
                 </svg>
               </button>
-              <div className="flex flex-row justify-center items-center text-center">
-                <TbConfetti className="size-[24px] text-red-500" />
-                <h1 className="m-2 text-xl">You Win!</h1>
+              <div className="flex flex-row justify-center items-center text-center ">
+                <TbConfetti className="size-[24px] text-red-500" /> 
+                <h1 className="m-2 text-xl text-green-500">Congrats You Win!</h1>
               </div>
-              <h1 className="m-2">Score: {score}</h1>
-              <h1 className="m-2">Difficulty: {difficulty}</h1>
+              <h1 className="m-2 text-gray-400">Difficulty: {difficulty}</h1>
+              <h1 className="my-4 font-bold text-xl">Score: {score}</h1>
+              {highscore !== null && (
+                <h1 className="mt-2 text-gray-200">
+                  {score > highscore
+                    ? "New Highscore!"
+                    : score === highscore
+                    ? `You've reached your highscore of ${highscore}`
+                    : `Highscore: ${highscore}`}
+                </h1>
+              )}
               <h1 className="m-2 text-gray-400 text-xs">
                 Use the side menu to make a new game
               </h1>

@@ -110,6 +110,8 @@ const ConstraintBlock = (props) => {
           <CaptchaGenerator
             onCaptchaGenerate={handleCaptchaGenerate}
             onImageGenerate={handleImageGenerate}
+            initialCaptchaText={props.initialCaptchaText}
+            initialCaptchaImage={props.initialCaptchaImage}
           />
         </div>
       );
@@ -125,8 +127,9 @@ const ConstraintBlock = (props) => {
     case "14":
       content = (
         <p className="bg-[#1E1F20] rounded-sm text-sm p-2">
-          🐔 Paul has hatched ! Please don’t forget to feed him. He eats {props.data.rule14FeedCount} 🐛
-          every {props.data.rule14Timeout / 1000} second
+          🐔 Paul has hatched ! Please don’t forget to feed him. He eats{" "}
+          {props.data.rule14FeedCount} 🐛 every{" "}
+          {props.data.rule14Timeout / 1000} second
         </p>
       );
       break;
@@ -138,7 +141,11 @@ const ConstraintBlock = (props) => {
             you will no longer be able to use.
           </h1>
 
-          <CharPicker charLimit={props.data.rule15Var} onPick={props.onLetterPick}/>
+          <CharPicker
+            charLimit={props.data.rule15Var}
+            onPick={props.onLetterPick}
+            initialSelection={props.initialSelection}
+          />
         </div>
       );
       break;

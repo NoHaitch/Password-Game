@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 
-function CaptchaGenerator({ onCaptchaGenerate, onImageGenerate }) {
-  const [captcha, setCaptcha] = useState("");
-  const [captchaImage, setcaptchaImage] = useState('');
+function CaptchaGenerator({ 
+  onCaptchaGenerate, 
+  onImageGenerate,
+  initialCaptchaText = "", 
+  initialCaptchaImage = ""
+}) {
+  const [captcha, setCaptcha] = useState(initialCaptchaText);
+  const [captchaImage, setCaptchaImage] = useState(initialCaptchaImage);
 
   const generateCaptcha = () => {
-    const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let captchaText = "";
     for (let i = 0; i < 6; i++) {
-      captchaText += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
+      captchaText += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     setCaptcha(captchaText);
     onCaptchaGenerate(captchaText);
@@ -38,9 +40,7 @@ function CaptchaGenerator({ onCaptchaGenerate, onImageGenerate }) {
       ctx.translate(x, y);
       ctx.rotate(angle);
 
-      ctx.fillStyle = `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(
-        Math.random() * 255
-      )}, ${Math.floor(Math.random() * 255)})`;
+      ctx.fillStyle = `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`;
 
       ctx.fillText(text[i], 0, 0);
       ctx.restore();
@@ -60,12 +60,12 @@ function CaptchaGenerator({ onCaptchaGenerate, onImageGenerate }) {
   useEffect(() => {
     if (captcha) {
       const img = generateCaptchaImage(captcha);
-      setcaptchaImage(img)
+      setCaptchaImage(img);
       onImageGenerate(img);
-    } else {
-        handleGenerate()
+    } else if (!initialCaptchaText) {
+      handleGenerate();
     }
-  }, [captcha]);
+  }, [captcha, initialCaptchaText]);
 
   const handleGenerate = () => {
     generateCaptcha();

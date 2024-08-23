@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 
-const CharPicker = ({ charLimit, onPick }) => {
+const CharPicker = ({ charLimit, onPick, initialSelection = [] }) => {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
   const [selectedChars, setSelectedChars] = useState([]);
+
+  useEffect(() => {
+    setSelectedChars(initialSelection);
+  }, [initialSelection]);
 
   const toggleChar = (char) => {
     if (selectedChars.includes(char)) {
