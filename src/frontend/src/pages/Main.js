@@ -113,6 +113,7 @@ function Main() {
   const [playing, setPlaying] = useState(false);
   const [difficultyStyle, setDifficultyStyle] = useState("");
   const [difficulty, setDifficulty] = useState("None");
+  const [difficultyMessage, setDifficultyMessage] = useState("");
   const [newDifficulty, setNewDifficulty] = useState("");
   const [newDifficultyStyle, setNewDifficultyStyle] = useState("");
   const [loseMessage, setLoseMessage] = useState("");
@@ -136,6 +137,9 @@ function Main() {
 
   const resetCurrentGame = () => {
     setPassword("");
+    setDifficultyMessage(difficulty);
+    setDifficulty("None");
+    setDifficultyStyle("");
     setHighestLevel(1);
     setCurrentGame({
       rule1Var: 0,
@@ -229,10 +233,18 @@ function Main() {
 
     const historyData = {
       username: user?.email,
-      difficulty: difficulty,
+      difficulty: difficultyMessage,
       score: score,
       password: password,
-      won: false,
+      won: true,
+      captcha: currentGame.captchaImg,
+      flags: currentGame.rule8Var,
+      time: timerTimer,
+      charBanned: currentGame.rule15Value,
+      rule1: currentGame.rule1Var,
+      rule5: currentGame.rule5Var,
+      rule9: currentGame.rule9Var,
+      rule17: currentGame.rule17Var,
     };
 
     try {
@@ -257,16 +269,25 @@ function Main() {
 
   const handleGameWin = async () => {
     if (!playing) return;
+
     setTimerToggle(false);
     setPlaying(false);
     setPopup((popup) => ({ ...popup, win: true }));
 
     const historyData = {
       username: user?.email,
-      difficulty: difficulty,
+      difficulty: difficultyMessage,
       score: score,
       password: password,
       won: true,
+      captcha: currentGame.captchaImg,
+      flags: currentGame.rule8Var,
+      time: timerTimer,
+      charBanned: currentGame.rule15Value,
+      rule1: currentGame.rule1Var,
+      rule5: currentGame.rule5Var,
+      rule9: currentGame.rule9Var,
+      rule17: currentGame.rule17Var,
     };
 
     try {
@@ -564,8 +585,10 @@ function Main() {
             }
             return newPassword;
           } else {
-            setLoseMessage("You forgot to feed the chicken!");
-            handleGameLose();
+            if (playing) {
+              setLoseMessage("You forgot to feed the chicken!");
+              handleGameLose();
+            }
             return prevPassword;
           }
         });
@@ -578,7 +601,7 @@ function Main() {
   }, [currentGame.rule14On, currentGame.rule14Timeout, password]);
 
   useEffect(() => {
-    if ((popup.lose || popup.win ) && difficulty !== "None") {
+    if ((popup.lose || popup.win) && difficulty !== "None") {
       console.log("FETCHING HIGHSCORE");
 
       const fetchHighscore = async () => {
@@ -1180,7 +1203,9 @@ function Main() {
                 </svg>
               </button>
               <h1 className="m-2 text-xl">You Lose!</h1>
-              <h1 className="m-2 text-gray-400">Difficulty: {difficulty}</h1>
+              <h1 className="m-2 text-gray-400">
+                Difficulty: {difficultyMessage}
+              </h1>
               <h1 className="m-2 text-xl text-red-500">{loseMessage}</h1>
               <h1 className="my-4 font-bold text-xl">Score: {score}</h1>
               {highscore !== null && (
@@ -1224,10 +1249,14 @@ function Main() {
                 </svg>
               </button>
               <div className="flex flex-row justify-center items-center text-center ">
-                <TbConfetti className="size-[24px] text-red-500" /> 
-                <h1 className="m-2 text-xl text-green-500">Congrats You Win!</h1>
+                <TbConfetti className="size-[24px] text-red-500" />
+                <h1 className="m-2 text-xl text-green-500">
+                  Congrats You Win!
+                </h1>
               </div>
-              <h1 className="m-2 text-gray-400">Difficulty: {difficulty}</h1>
+              <h1 className="m-2 text-gray-400">
+                Difficulty: {difficultyMessage}
+              </h1>
               <h1 className="my-4 font-bold text-xl">Score: {score}</h1>
               {highscore !== null && (
                 <h1 className="mt-2 text-gray-200">
@@ -1309,7 +1338,7 @@ function Main() {
 
         {popup.history && (
           <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
-            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[1000px]">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[80%]">
               <button
                 type="button"
                 className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
