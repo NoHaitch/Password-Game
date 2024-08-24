@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/rules"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -97,6 +98,8 @@ func main() {
 		}
 
 		leaderboard, err := getLeaderboard(difficulty)
+
+		fmt.Println(leaderboard)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

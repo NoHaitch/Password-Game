@@ -170,7 +170,30 @@ func addUser(username string) error {
 	return err
 }
 
-// Add a game history entry
+// Updates the user's highscore if the new score is higher.
+func updateHighscoreIfNeeded(username, difficulty string, newScore int) error {
+	currentHighscore, err := getHighscore(username, difficulty)
+	if err != nil {
+		return err
+	}
+
+	if newScore > currentHighscore {
+		query := fmt.Sprintf(`
+			UPDATE users
+			SET highscore_%s = ?
+			WHERE username = ?;
+		`, difficulty)
+
+		_, err := db.Exec(query, newScore, username)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Add a game history entry and update highscore if necessary
 func addGameHistory(username, difficulty string, score int, password string, won bool, captchaImage []byte, flags []string, time int, charBanned []string, rule1, rule5, rule9 int, rule17 float32) error {
 	var userExists bool
 	err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`, username).Scan(&userExists)
@@ -199,7 +222,15 @@ func addGameHistory(username, difficulty string, score int, password string, won
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	_, err = db.Exec(query, username, difficulty, score, password, won, captchaImage, flagsJSON, time, charBannedJSON, rule1, rule5, rule9, rule17)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if err := updateHighscoreIfNeeded(username, difficulty, score); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Get the current user's highscore for a specified difficulty.

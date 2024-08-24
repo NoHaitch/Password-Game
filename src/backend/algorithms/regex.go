@@ -25,9 +25,6 @@ func RegexGetRomanNumerals(input string) []string {
 	re := regexp.MustCompile(`[IVXLCDM]+`)
 	potentialMatches := re.FindAllString(input, -1)
 
-	// fmt.Println("Potential Matches:", potentialMatches)
-	// fmt.Println("Count of Potential Matches:", len(potentialMatches))
-
 	var validNumerals []string
 
 	for _, segment := range potentialMatches {
@@ -52,9 +49,6 @@ func RegexGetRomanNumerals(input string) []string {
 			}
 		}
 	}
-
-	// fmt.Println("Valid Numerals:", validNumerals)
-	// fmt.Println("Count of Valid Numerals:", len(validNumerals))
 
 	return validNumerals
 }
