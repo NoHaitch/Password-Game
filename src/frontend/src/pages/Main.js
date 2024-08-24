@@ -30,6 +30,7 @@ function Main() {
   const [HighestLevel, setHighestLevel] = useState(1);
   const [constraints, setConstraints] = useState(Array(20).fill(false));
   const [currentGame, setCurrentGame] = useState({
+    cheat: false,
     rule1Var: 0,
     rule5Var: 0,
     rule5Progres: 0,
@@ -111,6 +112,7 @@ function Main() {
   const [newGameDialog, setNewGameDialog] = useState(false);
 
   const [playing, setPlaying] = useState(false);
+  const [passwordActive, setPasswordActive] = useState(false);
   const [difficultyStyle, setDifficultyStyle] = useState("");
   const [difficulty, setDifficulty] = useState("None");
   const [difficultyMessage, setDifficultyMessage] = useState("");
@@ -137,9 +139,7 @@ function Main() {
 
   const resetCurrentGame = () => {
     setPassword("");
-    setDifficultyMessage(difficulty);
-    setDifficulty("None");
-    setDifficultyStyle("");
+    setScore(0);
     setHighestLevel(1);
     setCurrentGame({
       rule1Var: 0,
@@ -177,11 +177,13 @@ function Main() {
     }
     resetCurrentGame();
     setTimerToggle(true);
+    setPlaying(true);
+    setPasswordActive(true)
     if (difficulty === "easy") {
       setCurrentGame((currentGame) => ({
         ...currentGame,
         rule1Var: 6,
-        rule5Var: Math.floor(Math.random() * (30 - 20)) + 20,
+        rule5Var: Math.floor(Math.random() * (50 - 30)) + 30,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 5),
         rule9Var: getValidMultiple(10, 100),
         rule10VarA: 6000,
@@ -196,7 +198,7 @@ function Main() {
       setCurrentGame((currentGame) => ({
         ...currentGame,
         rule1Var: 12,
-        rule5Var: Math.floor(Math.random() * (70 - 40 + 1)) + 40,
+        rule5Var: Math.floor(Math.random() * (100 - 50)) + 50,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 3),
         rule9Var: getValidMultiple(40, 200),
         rule10VarA: 4000,
@@ -211,7 +213,7 @@ function Main() {
       setCurrentGame((currentGame) => ({
         ...currentGame,
         rule1Var: 18,
-        rule5Var: Math.floor(Math.random() * (100 - 60)) + 60,
+        rule5Var: Math.floor(Math.random() * (150 - 70)) + 70,
         rule8Var: generateRandomCountryCodes(oneWordCountryCodes, 1),
         rule9Var: getValidMultiple(80, 300),
         rule10VarA: 3000,
@@ -227,16 +229,20 @@ function Main() {
 
   const handleGameLose = async () => {
     if (!playing) return;
-    setTimerToggle(false);
+    setDifficultyMessage(difficulty);
+    setPasswordActive(false)
     setPlaying(false);
+    setTimerToggle(false);
+    let resScore = calculateScore(false);
+    setScore(resScore);
     setPopup((popup) => ({ ...popup, lose: true }));
 
     const historyData = {
       username: user?.email,
-      difficulty: difficultyMessage,
-      score: score,
+      difficulty: difficulty,
+      score: resScore,
       password: password,
-      won: true,
+      won: false,
       captcha: currentGame.captchaImg,
       flags: currentGame.rule8Var,
       time: timerTimer,
@@ -269,15 +275,18 @@ function Main() {
 
   const handleGameWin = async () => {
     if (!playing) return;
-
-    setTimerToggle(false);
+    setDifficultyMessage(difficulty);
+    setPasswordActive(false)
     setPlaying(false);
+    setTimerToggle(false);
+    let resScore = calculateScore(false);
+    setScore(resScore);
     setPopup((popup) => ({ ...popup, win: true }));
 
     const historyData = {
       username: user?.email,
-      difficulty: difficultyMessage,
-      score: score,
+      difficulty: difficulty,
+      score: resScore,
       password: password,
       won: true,
       captcha: currentGame.captchaImg,
@@ -376,6 +385,48 @@ function Main() {
     }
   };
 
+  const calculateScore = (isWin) => {
+    if (isWin) {
+      return HighestLevel * 1000 - timerTimer / 10 + 10000;
+    } else {
+      return Math.floor(HighestLevel * 500 - timerTimer / 50);
+    }
+  };
+
+  const getHighlightedText = () => {
+    const segments = password.split("");
+    const romanNumeralsRegex = /^[IVXLCDM]$/;
+    const numbersRegex = /^\d$/;
+
+    return segments
+      .map((char) => {
+        const lowerChar = char.toLowerCase();
+        const lowerHighlightArray = currentGame.rule15Value.map((c) =>
+          c.toLowerCase()
+        );
+
+        if (
+          HighestLevel >= 9 &&
+          !constraints[8] &&
+          romanNumeralsRegex.test(char)
+        ) {
+          return `<span style="background-color: red;">${char}</span>`;
+        }
+        if (
+          ((HighestLevel >= 5 && !constraints[4]) ||
+            (HighestLevel >= 17 && !constraints[16])) &&
+          numbersRegex.test(char)
+        ) {
+          return `<span style="background-color: red;">${char}</span>`;
+        }
+        if (lowerHighlightArray.includes(lowerChar)) {
+          return `<span style="background-color: red;">${char}</span>`;
+        }
+        return char;
+      })
+      .join("");
+  };
+
   useEffect(() => {
     const authenticated = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -392,7 +443,7 @@ function Main() {
   useEffect(() => {
     let interval;
 
-    if (playing) {
+    if (playing && passwordActive) {
       if (!password) {
         setConstraints(Array(20).fill(false));
       } else {
@@ -495,16 +546,6 @@ function Main() {
               }
 
               setConstraints(data.results || Array(20).fill(false));
-
-              // TEXT HIGHLIGHTING
-              // Rule 5 --> highlight numbers
-              // Rule 9 --> highlight roman numerals
-              // Rule 10 --> Fire
-              // rule 14 --> ? if feed less then count
-              // rule 15 --> highlight char choosen
-              // rule 17 --> highlight numbers
-              // rule 18 --> highlight every char
-              // rule 19 --> highlight counter
             })
             .catch((error) => {
               console.error("Error:", error);
@@ -516,7 +557,7 @@ function Main() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [playing, password, HighestLevel, currentGame]);
+  }, [playing, password, passwordActive, HighestLevel, currentGame]);
 
   useEffect(() => {
     if (difficulty !== "None") {
@@ -525,28 +566,30 @@ function Main() {
   }, [difficulty]);
 
   useEffect(() => {
-    if (currentGame.rule10On) {
-      burnIntervalRef.current = setInterval(() => {
-        setPassword((prevPassword) => {
-          const firstIndexFire = prevPassword.indexOf("🔥");
-          if (firstIndexFire !== -1 && firstIndexFire != 0) {
-            return (
-              prevPassword.slice(0, firstIndexFire - 1) +
-              "🔥" +
-              prevPassword.slice(firstIndexFire)
-            );
-          } else {
-            clearInterval(burnIntervalRef.current);
-            return prevPassword;
-          }
-        });
-      }, currentGame.rule10VarA);
-    } else {
-      clearInterval(burnIntervalRef.current);
+    if (playing && passwordActive) {
+      if (currentGame.rule10On && !currentGame.cheat) {
+        burnIntervalRef.current = setInterval(() => {
+          setPassword((prevPassword) => {
+            const firstIndexFire = prevPassword.indexOf("🔥");
+            if (firstIndexFire !== -1 && firstIndexFire != 0) {
+              return (
+                prevPassword.slice(0, firstIndexFire - 1) +
+                "🔥" +
+                prevPassword.slice(firstIndexFire)
+              );
+            } else {
+              clearInterval(burnIntervalRef.current);
+              return prevPassword;
+            }
+          });
+        }, currentGame.rule10VarA);
+      } else {
+        clearInterval(burnIntervalRef.current);
+      }
     }
 
     return () => clearInterval(burnIntervalRef.current);
-  }, [currentGame.rule10On, burningTimeout]);
+  }, [playing, passwordActive, currentGame.rule10On, burningTimeout]);
 
   useEffect(() => {
     if (
@@ -571,6 +614,46 @@ function Main() {
 
     return () => clearTimeout(reappearTimeoutRef.current);
   }, [password]);
+
+  useEffect(() => {
+    let interval;
+
+    if (playing && password && password.toLowerCase().includes("cheat")) {
+      console.log("CHEAT TRIGGERED");
+      
+        // interval = setInterval(() => {
+        //   fetch("http://localhost:8080/cheat", {
+        //     method: "POST",
+        //     headers: {
+        //       "Content-Type": "application/json",
+        //     },
+        //     body: JSON.stringify({
+        //       password,
+        //       rule1Var: currentGame.rule1Var,
+        //       rule5Var: currentGame.rule5Var,
+        //       rule8Var: currentGame.rule8Var,
+        //       rule9Var: currentGame.rule9Var,
+        //       captcha: currentGame.captchaValue,
+        //       rule13Var: currentGame.rule13Var,
+        //       rule15Var: currentGame.rule15Var,
+        //       rule15Value: currentGame.rule15Value,
+        //       rule17Var: currentGame.rule17Var,
+        //       rule18Var: password.length,
+        //     }),
+        //   })
+        //     .then((response) => response.json())
+        //     .then((data) => {})
+        //     .catch((error) => {
+        //       console.error("Error:", error);
+        //     });
+        // }, 1000);
+      }
+    
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [playing, password, currentGame]);
 
   useEffect(() => {
     if (currentGame.rule14On) {
@@ -602,8 +685,6 @@ function Main() {
 
   useEffect(() => {
     if ((popup.lose || popup.win) && difficulty !== "None") {
-      console.log("FETCHING HIGHSCORE");
-
       const fetchHighscore = async () => {
         try {
           const response = await fetch(
@@ -613,7 +694,6 @@ function Main() {
             throw new Error("Failed to fetch highscore");
           }
           const data = await response.json();
-          console.log(data.highscore);
           setHighscore(data.highscore);
         } catch (error) {
           console.error("Error fetching highscore:", error);
@@ -641,7 +721,7 @@ function Main() {
       <div className="">
         <aside
           id="sidebar-multi-level-sidebar"
-          className="fixed top-0 left-0 z-40 w-64 h-screen transition-transform text-gray-400 "
+          className="fixed top-0 left-0 z-[100] w-64 h-screen transition-transform text-gray-400 "
           aria-label="Sidebar"
         >
           <div className="h-full px-3 py-4 overflow-y-auto bg-[#1E1F20] flex flex-col justify-between items-center">
@@ -752,7 +832,6 @@ function Main() {
                       setNewDifficulty("easy");
                       setNewDifficultyStyle("text-green-400");
                     } else {
-                      setPlaying(true);
                       setDifficulty("easy");
                       setDifficultyStyle("text-green-400");
                     }
@@ -770,7 +849,6 @@ function Main() {
                       setNewDifficulty("medium");
                       setNewDifficultyStyle("text-blue-400");
                     } else {
-                      setPlaying(true);
                       setDifficulty("medium");
                       setDifficultyStyle("text-blue-400");
                     }
@@ -788,7 +866,6 @@ function Main() {
                       setNewDifficulty("hard");
                       setNewDifficultyStyle("text-red-400");
                     } else {
-                      setPlaying(true);
                       setDifficulty("hard");
                       setDifficultyStyle("text-red-400");
                     }
@@ -816,9 +893,9 @@ function Main() {
                   onClick={() => {
                     setNewGameDialog(false);
                     setResetConfirmation(false);
+                    handleGameStart();
                     setDifficulty(newDifficulty);
                     setDifficultyStyle(newDifficultyStyle);
-                    handleGameStart();
                   }}
                 >
                   Confirm
@@ -839,7 +916,7 @@ function Main() {
         ) : null}
 
         <Title />
-        {!playing ? (
+        {difficulty === "None" ? (
           <div className="text-gray-400 text-center m-4">
             <h1>No Game started.</h1>
             <h1>Use the button on the sidebar to load or start a new game.</h1>
@@ -854,19 +931,42 @@ function Main() {
                 >
                   Choose a password!
                 </label>
-                <Textarea
-                  className="w-[500px] resize-none block p-2.5 text-lg rounded-lg border-2 bg-[#1E1F20] border-[#7188D9] placeholder-gray-400 text-white focus:ring-blue-500 focus:border-blue-500"
-                  id="textarea"
-                  placeholder="Password..."
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setCount(e.target.value.length);
-                  }}
-                  value={password}
-                  ref={inputRef}
-                />
+                <div className="relative w-[500px]">
+                  <div
+                    className="absolute inset-0 p-2.5 text-lg bg-transparent pointer-events-none whitespace-pre-wrap break-words text-white"
+                    style={{ zIndex: 1 }}
+                    dangerouslySetInnerHTML={{ __html: getHighlightedText() }}
+                  ></div>
+
+                  <Textarea
+                    className="w-full resize-none block p-2.5 text-lg rounded-lg border-2 bg-[#1E1F20] border-[#7188D9] placeholder-gray-400 text-white focus:ring-blue-500 focus:border-blue-500"
+                    id="textarea"
+                    placeholder="Password..."
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setCount(e.target.value.length);
+                    }}
+                    value={password}
+                    ref={inputRef}
+                    style={{
+                      backgroundColor: "transparent",
+                      color: "transparent",
+                      caretColor: "white",
+                      zIndex: 2,
+                      position: "relative",
+                    }}
+                  />
+                  {!passwordActive && (
+                    <div className="absolute z-[20] top-0 w-full h-[300px]"></div>
+                  )}
+                </div>
               </div>
-              <p className="text-white absolute mr-[-550px] mb-[-20px] text-left">
+              <p
+                className={twMerge(
+                  "text-white absolute mr-[-550px] mb-[-20px] text-left",
+                  HighestLevel >= 19 && !constraints[18] ? "bg-red-400" : ""
+                )}
+              >
                 {count}
               </p>
             </div>
@@ -1179,7 +1279,7 @@ function Main() {
         </div>
 
         {popup.lose && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
@@ -1225,7 +1325,7 @@ function Main() {
         )}
 
         {popup.win && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
@@ -1275,7 +1375,7 @@ function Main() {
         )}
 
         {popup.notReady && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
@@ -1306,8 +1406,8 @@ function Main() {
         )}
 
         {popup.leaderboard && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
-            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[700px]">
               <button
                 type="button"
                 className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
@@ -1337,7 +1437,7 @@ function Main() {
         )}
 
         {popup.history && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-10 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[80%]">
               <button
                 type="button"

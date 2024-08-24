@@ -27,7 +27,9 @@ function History() {
 
   useEffect(() => {
     if (user) {
-      fetch(`http://localhost:8080/history?username=${user?.email}&difficulty=${difficulty}`)
+      fetch(
+        `http://localhost:8080/history?username=${user?.email}&difficulty=${difficulty}`
+      )
         .then((response) => {
           if (!response.ok) {
             throw new Error("Network response was not ok");
@@ -39,6 +41,8 @@ function History() {
             setError("No data available for this section.");
           } else {
             setError("");
+            console.log(data.history);
+            
             setHistory(data.history);
           }
           setLoading(false);
@@ -56,7 +60,11 @@ function History() {
 
   const renderValue = (value) => {
     if (Array.isArray(value) && value.length === 0) return "-";
-    if (value === 0 || value === "" || value === null || value === undefined) return "-";
+    if (value === 0 || value === "" || value === null || value === undefined)
+      return "-";
+    if (Array.isArray(value)) return value.join(", ");
+    if (Number(value) === value && value % 1 !== 0)
+      return Math.round(value * 100) / 100;
     return value;
   };
 
@@ -132,9 +140,17 @@ function History() {
               <tbody>
                 {history.map((game, index) => (
                   <tr key={index} className="border-b text-slate-300">
-                    <td className="py-3 px-6 text-center">{game.date.split('T')[0]}</td>
-                    <td className="py-3 px-6 text-center">{renderValue(game.score)}</td>
-                    <td className="py-3 px-6 text-center">{renderValue(game.time)}</td>
+                    <td className="py-3 px-6 text-center">
+                      <h1 className="w-[100px]">{game.date.split("T")[0]}</h1>
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      {renderValue(game.score) === "-"
+                        ? 0
+                        : renderValue(game.score)}
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      {renderValue(game.time)}
+                    </td>
                     <td className="py-3 px-6 text-center">
                       {game.won ? "Win" : "Lose"}
                     </td>
@@ -156,11 +172,21 @@ function History() {
                         "-"
                       )}
                     </td>
-                    <td className="py-3 px-6 text-center">{renderValue(game.rule1)}</td>
-                    <td className="py-3 px-6 text-center">{renderValue(game.rule5)}</td>
-                    <td className="py-3 px-6 text-center">{renderValue(game.rule9)}</td>
-                    <td className="py-3 px-6 text-center">{renderValue(game.rule17)}</td>
-                    <td className="py-3 px-6 text-center">{renderValue(game.charBanned)}</td>
+                    <td className="py-3 px-6 text-center">
+                      {renderValue(game.rule1)}
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      {renderValue(game.rule5)}
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      {renderValue(game.rule9)}
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      {renderValue(game.rule17)}
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      {renderValue(game.charBanned)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

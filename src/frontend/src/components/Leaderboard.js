@@ -19,7 +19,11 @@ function Leaderboard() {
       })
       .then((data) => {
         if (Array.isArray(data.leaderboard) && data.leaderboard.length > 0) {
-          setLeaderboard(data.leaderboard);
+          const processedLeaderboard = data.leaderboard.map((entry) => {
+            const [username, highscore] = entry.split(": ");
+            return { username, highscore: parseInt(highscore, 10) };
+          });
+          setLeaderboard(processedLeaderboard);
         } else {
           setLeaderboard(null);
         }
