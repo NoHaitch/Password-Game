@@ -25,6 +25,7 @@ function Main() {
   const [highscore, setHighscore] = useState(null);
   const [timerToggle, setTimerToggle] = useState(false);
   const [password, setPassword] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const [HighestLevel, setHighestLevel] = useState(1);
@@ -43,7 +44,7 @@ function Main() {
     rule10VarC: 0,
     rule11Trigger: false,
     rule11On: false,
-    captchaValue: ",./';]",
+    captchaValue: "",
     captchaImg: "",
     rule13Var: 1000,
     rule14On: false,
@@ -142,6 +143,7 @@ function Main() {
     setScore(0);
     setHighestLevel(1);
     setCurrentGame({
+      cheat: false,
       rule1Var: 0,
       rule5Var: 0,
       rule5Progres: 0,
@@ -154,7 +156,7 @@ function Main() {
       rule10VarC: 0,
       rule11Trigger: false,
       rule11On: false,
-      captchaValue: ",./';]",
+      captchaValue: "",
       captchaImg: "",
       rule13Var: 1000,
       rule14On: false,
@@ -178,7 +180,7 @@ function Main() {
     resetCurrentGame();
     setTimerToggle(true);
     setPlaying(true);
-    setPasswordActive(true)
+    setPasswordActive(true);
     if (difficulty === "easy") {
       setCurrentGame((currentGame) => ({
         ...currentGame,
@@ -193,6 +195,7 @@ function Main() {
         rule14Timeout: 30000,
         rule15Var: 2,
         rule17Var: Math.round(Math.random() * (0.5 - 0.1) + 0.1 * 100) / 100,
+        captchaValue: generateCaptcha(),
       }));
     } else if (difficulty === "medium") {
       setCurrentGame((currentGame) => ({
@@ -208,6 +211,7 @@ function Main() {
         rule14Timeout: 25000,
         rule15Var: 4,
         rule17Var: Math.round(Math.random() * (0.1 - 0.2) + 0.2 * 100) / 100,
+        captchaValue: generateCaptcha(),
       }));
     } else {
       setCurrentGame((currentGame) => ({
@@ -223,6 +227,7 @@ function Main() {
         rule14Timeout: 15000,
         rule15Var: 6,
         rule17Var: Math.round(Math.random() * (0.15 - 0.3) + 0.3 * 100) / 100,
+        captchaValue: generateCaptcha(),
       }));
     }
   };
@@ -230,7 +235,7 @@ function Main() {
   const handleGameLose = async () => {
     if (!playing) return;
     setDifficultyMessage(difficulty);
-    setPasswordActive(false)
+    setPasswordActive(false);
     setPlaying(false);
     setTimerToggle(false);
     let resScore = calculateScore(false);
@@ -276,7 +281,7 @@ function Main() {
   const handleGameWin = async () => {
     if (!playing) return;
     setDifficultyMessage(difficulty);
-    setPasswordActive(false)
+    setPasswordActive(false);
     setPlaying(false);
     setTimerToggle(false);
     let resScore = calculateScore(false);
@@ -427,6 +432,18 @@ function Main() {
       .join("");
   };
 
+  const generateCaptcha = () => {
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let captchaText = "";
+    for (let i = 0; i < 6; i++) {
+      captchaText += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
+    }
+    return captchaText;
+  };
+
   useEffect(() => {
     const authenticated = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -566,12 +583,12 @@ function Main() {
   }, [difficulty]);
 
   useEffect(() => {
-    if (playing && passwordActive) {
+    if (playing && passwordActive && !currentGame.cheat) {
       if (currentGame.rule10On && !currentGame.cheat) {
         burnIntervalRef.current = setInterval(() => {
           setPassword((prevPassword) => {
             const firstIndexFire = prevPassword.indexOf("🔥");
-            if (firstIndexFire !== -1 && firstIndexFire != 0) {
+            if (firstIndexFire !== -1 && firstIndexFire !== 0) {
               return (
                 prevPassword.slice(0, firstIndexFire - 1) +
                 "🔥" +
@@ -589,13 +606,20 @@ function Main() {
     }
 
     return () => clearInterval(burnIntervalRef.current);
-  }, [playing, passwordActive, currentGame.rule10On, burningTimeout]);
+  }, [
+    playing,
+    passwordActive,
+    currentGame.rule10On,
+    currentGame.cheat,
+    burningTimeout,
+  ]);
 
   useEffect(() => {
     if (
       password.indexOf("🔥") === -1 &&
       currentGame.rule10On &&
-      !burningTimeout
+      !burningTimeout &&
+      !currentGame.cheat
     ) {
       setBurningTimeout(true);
       const reappearTime =
@@ -613,50 +637,69 @@ function Main() {
     }
 
     return () => clearTimeout(reappearTimeoutRef.current);
-  }, [password]);
+  }, [
+    password,
+    currentGame.cheat,
+    currentGame.rule10On,
+    currentGame.rule10VarC,
+    currentGame.rule10VarB,
+  ]);
 
   useEffect(() => {
-    let interval;
+    if (
+      playing &&
+      password &&
+      password.toLowerCase().includes("cheat") &&
+      !currentGame.cheat
+    ) {
+      fetch("http://localhost:8080/cheat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          rule1Var: currentGame.rule1Var,
+          rule5Var: currentGame.rule5Var,
+          rule8Var: currentGame.rule8Var,
+          rule9Var: currentGame.rule9Var,
+          captcha: currentGame.captchaValue,
+          rule13Var: currentGame.rule13Var,
+          rule15Var: currentGame.rule15Var,
+          rule15Value: currentGame.rule15Value,
+          rule17Var: currentGame.rule17Var,
+          length: password.length,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.solveable) {
+            console.log("Cheat Successful:", data.cheatedPassword);
 
-    if (playing && password && password.toLowerCase().includes("cheat")) {
-      console.log("CHEAT TRIGGERED");
-      
-        // interval = setInterval(() => {
-        //   fetch("http://localhost:8080/cheat", {
-        //     method: "POST",
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //     body: JSON.stringify({
-        //       password,
-        //       rule1Var: currentGame.rule1Var,
-        //       rule5Var: currentGame.rule5Var,
-        //       rule8Var: currentGame.rule8Var,
-        //       rule9Var: currentGame.rule9Var,
-        //       captcha: currentGame.captchaValue,
-        //       rule13Var: currentGame.rule13Var,
-        //       rule15Var: currentGame.rule15Var,
-        //       rule15Value: currentGame.rule15Value,
-        //       rule17Var: currentGame.rule17Var,
-        //       rule18Var: password.length,
-        //     }),
-        //   })
-        //     .then((response) => response.json())
-        //     .then((data) => {})
-        //     .catch((error) => {
-        //       console.error("Error:", error);
-        //     });
-        // }, 1000);
-      }
-    
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+            setPassword(data.cheatedPassword);
+            setCount(data.cheatedPassword.length);
+            setCurrentGame((currentGame) => ({
+              ...currentGame,
+              rule15Value: data.rule15Value,
+              cheat: true,
+            }));
+          } else {
+            console.log("Cheat failed. Redoing Cheat.");
+            console.log(data.cheatedPassword);
+            setCurrentGame((currentGame) => ({
+              ...currentGame,
+              captchaValue: generateCaptcha(),
+            }));
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    }
   }, [playing, password, currentGame]);
 
   useEffect(() => {
-    if (currentGame.rule14On) {
+    if (currentGame.rule14On && !currentGame.cheat) {
       FeedIntervalRef.current = setInterval(() => {
         setPassword((prevPassword) => {
           let wormCount = (prevPassword.match(/🐛/g) || []).length;
@@ -681,7 +724,12 @@ function Main() {
     }
 
     return () => clearInterval(FeedIntervalRef.current);
-  }, [currentGame.rule14On, currentGame.rule14Timeout, password]);
+  }, [
+    currentGame.rule14On,
+    currentGame.rule14Timeout,
+    currentGame.cheat,
+    password,
+  ]);
 
   useEffect(() => {
     if ((popup.lose || popup.win) && difficulty !== "None") {
@@ -832,6 +880,9 @@ function Main() {
                       setNewDifficulty("easy");
                       setNewDifficultyStyle("text-green-400");
                     } else {
+                      if (difficulty === "easy") {
+                        setDifficulty("None");
+                      }
                       setDifficulty("easy");
                       setDifficultyStyle("text-green-400");
                     }
@@ -849,6 +900,9 @@ function Main() {
                       setNewDifficulty("medium");
                       setNewDifficultyStyle("text-blue-400");
                     } else {
+                      if (difficulty === "medium") {
+                        setDifficulty("None");
+                      }
                       setDifficulty("medium");
                       setDifficultyStyle("text-blue-400");
                     }
@@ -866,6 +920,9 @@ function Main() {
                       setNewDifficulty("hard");
                       setNewDifficultyStyle("text-red-400");
                     } else {
+                      if (difficulty === "hard") {
+                        setDifficulty("None");
+                      }
                       setDifficulty("hard");
                       setDifficultyStyle("text-red-400");
                     }
@@ -894,6 +951,9 @@ function Main() {
                     setNewGameDialog(false);
                     setResetConfirmation(false);
                     handleGameStart();
+                    if (difficulty === newDifficulty) {
+                      setDifficulty("None");
+                    }
                     setDifficulty(newDifficulty);
                     setDifficultyStyle(newDifficultyStyle);
                   }}
@@ -1279,7 +1339,7 @@ function Main() {
         </div>
 
         {popup.lose && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="fixed top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
@@ -1325,7 +1385,7 @@ function Main() {
         )}
 
         {popup.win && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="fixed top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
@@ -1375,7 +1435,7 @@ function Main() {
         )}
 
         {popup.notReady && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="fixed top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[400px]">
               <button
                 type="button"
@@ -1406,7 +1466,7 @@ function Main() {
         )}
 
         {popup.leaderboard && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="fixed top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[700px]">
               <button
                 type="button"
@@ -1437,7 +1497,7 @@ function Main() {
         )}
 
         {popup.history && (
-          <div className="absolute top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+          <div className="fixed top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
             <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[80%]">
               <button
                 type="button"

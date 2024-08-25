@@ -40,9 +40,7 @@ function History() {
           if (!data.history || !Array.isArray(data.history)) {
             setError("No data available for this section.");
           } else {
-            setError("");
-            console.log(data.history);
-            
+            setError("");            
             setHistory(data.history);
           }
           setLoading(false);
