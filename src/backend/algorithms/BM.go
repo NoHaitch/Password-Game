@@ -1,7 +1,8 @@
 package algorithms
 
-// Boyer Moore String Matching -- Bad Character Heuristic
-func BMSearch(text, pattern string) bool {
+// Boyer-Moore Search
+// Return bool found and position of pattern in text
+func BMSearch(text, pattern string) (bool, int) {
 	m := len(pattern)
 	n := len(text)
 
@@ -16,12 +17,12 @@ func BMSearch(text, pattern string) bool {
 		}
 
 		if j < 0 {
-			return true
+			return true, shift
 		} else {
 			shift += max(1, j-badChar[text[shift+j]])
 		}
 	}
-	return false
+	return false, -1
 }
 
 // Bad Character Heuristic
@@ -34,4 +35,11 @@ func badCharHeuristic(pattern string) []int {
 		badChar[pattern[i]] = i
 	}
 	return badChar
+}
+
+func max(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
 }

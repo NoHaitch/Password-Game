@@ -3,6 +3,7 @@ package rules
 import (
 	"backend/algorithms"
 	"strings"
+	"unicode"
 )
 
 // Rule 8 – Your password must include one of this country
@@ -16,7 +17,8 @@ func containsCountry(s string, countrycodes []string) bool {
 	lower := strings.ToLower(s)
 	found := false
 	for _, code := range countrycodes {
-		if algorithms.BMSearch(lower, convertCountryCodeToName(code)) {
+		searchFound, _ := algorithms.BMSearch(lower, convertCountryCodeToName(code))
+		if searchFound {
 			found = true
 			break
 		}
@@ -221,4 +223,55 @@ var countryCodes = map[string]string{
 	"YE": "yemen",
 	"ZM": "zambia",
 	"ZW": "zimbabwe",
+}
+
+func cheatRule8(password string, countryCodes []string, importantAlphabets *[]string) string {
+	if !rule8(password, countryCodes) {
+		minNewChars := -1
+		selectedCountry := ""
+
+		for _, code := range countryCodes {
+			countryName := convertCountryCodeToName(code)
+			lowerCountryName := strings.ToLower(countryName)
+
+			if !strings.Contains(strings.ToLower(password), lowerCountryName) {
+				newCharsCount := 0
+				tempSet := make(map[rune]bool)
+				for _, char := range lowerCountryName {
+					if unicode.IsLetter(char) && !containsChar(*importantAlphabets, char) {
+						tempSet[char] = true
+					}
+				}
+				newCharsCount = len(tempSet)
+
+				if minNewChars == -1 || newCharsCount < minNewChars {
+					minNewChars = newCharsCount
+					selectedCountry = countryName
+				}
+			}
+		}
+
+		if selectedCountry != "" {
+			if len(password) > 0 && unicode.IsLetter(rune(password[len(password)-1])) {
+				password += " "
+			}
+			password += selectedCountry
+
+			for _, char := range strings.ToLower(selectedCountry) {
+				if unicode.IsLetter(char) && !containsChar(*importantAlphabets, char) {
+					*importantAlphabets = append(*importantAlphabets, string(char))
+				}
+			}
+		}
+	}
+	return password
+}
+
+func containsChar(slice []string, char rune) bool {
+	for _, v := range slice {
+		if v == string(char) {
+			return true
+		}
+	}
+	return false
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"backend/rules"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -99,7 +98,6 @@ func main() {
 
 		leaderboard, err := getLeaderboard(difficulty)
 
-		fmt.Println(leaderboard)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -186,6 +184,55 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"highscore": highscore})
+	})
+
+	// Cheat Endpoint
+	r.POST("/cheat", func(c *gin.Context) {
+		var requestBody struct {
+			Password    string   `json:"password"`
+			Rule1Var    int      `json:"rule1Var"`
+			Rule5Var    int      `json:"rule5Var"`
+			Rule8Var    []string `json:"rule8Var"`
+			Rule9Var    int      `json:"rule9Var"`
+			Captcha     string   `json:"captcha"`
+			Rule13Var   int      `json:"rule13Var"`
+			Rule15Var   int      `json:"rule15Var"`
+			Rule15Value []string `json:"rule15Value"`
+			Rule17Var   float32  `json:"rule17Var"`
+			Length      int      `json:"length"`
+		}
+
+		if err := c.BindJSON(&requestBody); err != nil {
+			PrintlnRed("[Main] Cheat Request Failed, Invalid JSON")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+			return
+		}
+
+		password := requestBody.Password
+		rule1Var := requestBody.Rule1Var
+		rule5Var := requestBody.Rule5Var
+		rule8Var := requestBody.Rule8Var
+		rule9Var := requestBody.Rule9Var
+		captcha := requestBody.Captcha
+		rule13Var := requestBody.Rule13Var
+		rule15Var := requestBody.Rule15Var
+		rule15Value := requestBody.Rule15Value
+		rule17Var := requestBody.Rule17Var
+		length := requestBody.Length
+
+		if password == "" {
+			PrintlnRed("[Main] Cheat Request Failed, Empty Password")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
+			return
+		}
+
+		cheatedPassword, solveable, bannedChars := rules.CheatSolution(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var, rule15Var, rule15Value, rule17Var, length)
+
+		c.JSON(http.StatusOK, gin.H{
+			"cheatedPassword": cheatedPassword,
+			"solveable":       solveable,
+			"rule15Value":     bannedChars,
+		})
 	})
 
 	go func() {

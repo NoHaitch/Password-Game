@@ -18,3 +18,11 @@ func containsSpecialCharacter(s string) bool {
 	}
 	return false
 }
+
+func cheatRule4(password string) string {
+	if !containsSpecialCharacter(password) {
+		password += "/"
+	}
+
+	return password
+}

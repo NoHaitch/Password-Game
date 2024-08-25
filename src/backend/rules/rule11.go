@@ -1,5 +1,9 @@
 package rules
 
+import (
+	"strings"
+)
+
 // Rule 11 – 🥚 This is my chicken Paul. He hasn’t hatched yet. Please put him in your password and keep him safe
 // (Pastikan emoji telur tidak terhapus. Kalau terhapus, pemain dinyatakan kalah)
 func rule11(password string) bool {
@@ -14,4 +18,8 @@ func containsEgg(s string) bool {
 		}
 	}
 	return false
+}
+
+func cheatRule11(password string) string {
+	return strings.Replace(password, "🥚", "🐔", 1)
 }

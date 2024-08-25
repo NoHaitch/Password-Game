@@ -2,20 +2,16 @@ package algorithms
 
 import (
 	"regexp"
-	"strconv"
 )
 
-// Extract all number occurance into a slice of integers
-func RegexGetNumber(input string) []int {
+// Extract all number occurrences into a slice of strings
+func RegexGetNumber(input string) []string {
 	re := regexp.MustCompile(`\d+`)
 	matches := re.FindAllString(input, -1)
 
-	var numbers []int
+	var numbers []string
 
-	for _, match := range matches {
-		num, _ := strconv.Atoi(match)
-		numbers = append(numbers, num)
-	}
+	numbers = append(numbers, matches...)
 
 	return numbers
 }
@@ -35,7 +31,7 @@ func RegexGetRomanNumerals(input string) []string {
 
 		for index := 0; index < len(segment); {
 			for substrlen := 1; substrlen+index-1 < len(segment); substrlen++ {
-				if !isValidRoman(segment[index : index+substrlen]) {
+				if !IsValidRoman(segment[index : index+substrlen]) {
 					validNumerals = append(validNumerals, segment[index:index+substrlen-1])
 					index = index + substrlen - 1
 					break
@@ -54,7 +50,7 @@ func RegexGetRomanNumerals(input string) []string {
 }
 
 // Helper function to validate if a substring is a valid Roman numeral
-func isValidRoman(roman string) bool {
+func IsValidRoman(roman string) bool {
 	re := regexp.MustCompile(`^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$`)
 	return re.MatchString(roman)
 }

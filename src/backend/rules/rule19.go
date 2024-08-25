@@ -1,5 +1,11 @@
 package rules
 
+import (
+	"backend/algorithms"
+	"strconv"
+	"unicode"
+)
+
 // Rule 19 – The length of your password must be a prime number
 func rule19(length int) bool {
 	return isPrimeNumber(length)
@@ -22,4 +28,30 @@ func isPrimeNumber(x int) bool {
 		}
 	}
 	return true
+}
+
+func getSmallestPrimeGreaterThanMin(min int) int {
+	if isPrimeNumber(min) {
+		return min
+
+	}
+	for min += 1; ; min++ {
+		if isPrimeNumber(min) {
+			return min
+		}
+	}
+}
+
+func cheatRule19(password string, gap int) (string, int) {
+	passwordLength := getSmallestPrimeGreaterThanMin(len(password) + gap)
+
+	found, _ := algorithms.BMSearch(password, strconv.Itoa(passwordLength))
+	if !found {
+		if len(password) > 0 && unicode.IsDigit(rune(password[len(password)-1])) {
+			password += " "
+		}
+
+		password += strconv.Itoa(passwordLength)
+	}
+	return password, passwordLength
 }

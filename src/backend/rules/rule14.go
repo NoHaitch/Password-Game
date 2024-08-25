@@ -16,3 +16,7 @@ func chickenFeed(s string) bool {
 
 	return false
 }
+
+func cheatRule14(password string) string {
+	return password + "🐔"
+}
