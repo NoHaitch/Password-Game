@@ -831,7 +831,6 @@ function Main() {
           <div className="h-full px-3 py-4 overflow-y-auto bg-[#1E1F20] flex flex-col justify-between items-center">
             <ul className="flex flex-col justify-between items-center space-y-3 mt-4">
               <li className="flex flex-row items-center">{user?.email}</li>
-              <li className="flex flex-row items-center">Highscore:</li>
               <li className="flex flex-row items-center">
                 <button className="text-gray-400" onClick={logout}>
                   Logout
@@ -845,7 +844,6 @@ function Main() {
                   {difficulty}
                 </span>
               </li>
-              <li className="m-4">Current time</li>
               <li className="flex flex-col justify-center items-center">
                 <div>
                   <button
