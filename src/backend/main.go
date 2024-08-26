@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/gin-contrib/cors"
@@ -233,6 +234,112 @@ func main() {
 			"solveable":       solveable,
 			"rule15Value":     bannedChars,
 		})
+	})
+
+	// Get all saves of a user
+	r.GET("/getSaves", func(c *gin.Context) {
+		username := c.Query("username")
+		if username == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username query parameter is required"})
+			return
+		}
+
+		saves, err := getSaves(username)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"saves": saves})
+	})
+
+	// Save Game Endpoint
+	r.POST("/saveGame", func(c *gin.Context) {
+		var requestBody struct {
+			Username     string   `json:"username"`
+			Difficulty   string   `json:"difficulty"`
+			Password     string   `json:"password"`
+			CaptchaImage string   `json:"captchaimg"`
+			Captcha      string   `json:"captcha"`
+			Flags        []string `json:"flags"`
+			Time         int      `json:"time"`
+			CharBanned   []string `json:"charBanned"`
+			Rule1        int      `json:"rule1"`
+			Rule5        int      `json:"rule5"`
+			Rule9        int      `json:"rule9"`
+			Rule17       float32  `json:"rule17"`
+		}
+
+		if err := c.BindJSON(&requestBody); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+			return
+		}
+
+		if requestBody.Username == "" || requestBody.Difficulty == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username, difficulty, password fields are required"})
+			return
+		}
+
+		captchaImage, err := base64ToBytes(requestBody.CaptchaImage)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid CAPTCHA image"})
+			return
+		}
+
+		err = addGameSave(requestBody.Username, requestBody.Difficulty, requestBody.Password, captchaImage, requestBody.Captcha, requestBody.Flags, requestBody.Time, requestBody.CharBanned, requestBody.Rule1, requestBody.Rule5, requestBody.Rule9, requestBody.Rule17)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Game save added successfully"})
+	})
+
+	// Load Game Endpoint
+	r.GET("/loadGame", func(c *gin.Context) {
+		id := c.Query("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "ID query parameter is required"})
+			return
+		}
+
+		gameSaveID, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+			return
+		}
+
+		gameSave, err := loadGameSave(gameSaveID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"gameSave": gameSave})
+	})
+
+	// Delete Save Endpoint
+	r.DELETE("/deleteSave", func(c *gin.Context) {
+		id := c.Query("id")
+
+		if id == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "ID query parameter is required"})
+			return
+		}
+
+		saveID, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+			return
+		}
+
+		err = deleteSave(saveID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Game save deleted successfully"})
 	})
 
 	go func() {

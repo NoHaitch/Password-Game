@@ -24,14 +24,14 @@ func initDB() {
 
 	// Create users table if it does not exist
 	userTableCreationSQL := `
-		CREATE TABLE IF NOT EXISTS users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT UNIQUE NOT NULL,
-			highscore_easy INTEGER DEFAULT 0,
-			highscore_medium INTEGER DEFAULT 0,
-			highscore_hard INTEGER DEFAULT 0
-		);
-	`
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            highscore_easy INTEGER DEFAULT 0,
+            highscore_medium INTEGER DEFAULT 0,
+            highscore_hard INTEGER DEFAULT 0
+        );
+    `
 	_, err = db.Exec(userTableCreationSQL)
 	if err != nil {
 		PrintlnRed("[Main] DATABASE ERROR: " + err.Error())
@@ -39,26 +39,51 @@ func initDB() {
 
 	// Create history table if it does not exist
 	historyTableCreationSQL := `
-			CREATE TABLE IF NOT EXISTS history (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT NOT NULL,
-			difficulty TEXT NOT NULL,
-			score INTEGER NOT NULL,
-			date DATETIME DEFAULT CURRENT_TIMESTAMP,
-			password TEXT NOT NULL,
-			won BOOLEAN NOT NULL DEFAULT FALSE,
-			captcha_image BLOB,
-			flags TEXT,
-			time INTEGER,
-			char_banned TEXT,
-			rule1 INTEGER,
-			rule5 INTEGER,
-			rule9 INTEGER,
-			rule17 REAL,
-			FOREIGN KEY(username) REFERENCES users(username)
-		);
-	`
+        CREATE TABLE IF NOT EXISTS history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            difficulty TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            password TEXT NOT NULL,
+            won BOOLEAN NOT NULL DEFAULT FALSE,
+            captcha_image BLOB,
+            flags TEXT,
+            time INTEGER,
+            char_banned TEXT,
+            rule1 INTEGER,
+            rule5 INTEGER,
+            rule9 INTEGER,
+            rule17 REAL,
+            FOREIGN KEY(username) REFERENCES users(username)
+        );
+    `
 	_, err = db.Exec(historyTableCreationSQL)
+	if err != nil {
+		PrintlnRed("[Main] DATABASE ERROR: " + err.Error())
+	}
+
+	// Create gameSave table if it does not exist
+	gameSaveTableCreationSQL := `
+        CREATE TABLE IF NOT EXISTS gameSave (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            difficulty TEXT NOT NULL,
+            date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            password TEXT NOT NULL,
+            captcha_image BLOB,
+            flags TEXT,
+            time INTEGER,
+            char_banned TEXT,
+            rule1 INTEGER,
+            rule5 INTEGER,
+            rule9 INTEGER,
+            rule17 REAL,
+            captcha TEXT, -- New column for storing original CAPTCHA
+            FOREIGN KEY(username) REFERENCES users(username)
+        );
+    `
+	_, err = db.Exec(gameSaveTableCreationSQL)
 	if err != nil {
 		PrintlnRed("[Main] DATABASE ERROR: " + err.Error())
 	}
@@ -261,4 +286,134 @@ func base64ToBytes(base64Str string) ([]byte, error) {
 	}
 
 	return base64.StdEncoding.DecodeString(base64Str)
+}
+
+func addGameSave(username, difficulty string, password string, captchaImage []byte, captcha string, flags []string, time int, charBanned []string, rule1, rule5, rule9 int, rule17 float32) error {
+	var saveCount int
+	err := db.QueryRow(`SELECT COUNT(*) FROM gameSave WHERE username = ?`, username).Scan(&saveCount)
+	if err != nil {
+		return err
+	}
+
+	if saveCount >= 5 {
+		_, err := db.Exec(`DELETE FROM gameSave WHERE id = (SELECT id FROM gameSave WHERE username = ? ORDER BY date ASC LIMIT 1)`, username)
+		if err != nil {
+			return err
+		}
+	}
+
+	flagsJSON, err := json.Marshal(flags)
+	if err != nil {
+		return err
+	}
+
+	charBannedJSON, err := json.Marshal(charBanned)
+	if err != nil {
+		return err
+	}
+
+	query := `
+        INSERT INTO gameSave (username, difficulty, password, captcha_image, captcha, flags, time, char_banned, rule1, rule5, rule9, rule17)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+	_, err = db.Exec(query, username, difficulty, password, captchaImage, captcha, flagsJSON, time, charBannedJSON, rule1, rule5, rule9, rule17)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func loadGameSave(id int) (map[string]interface{}, error) {
+	query := `
+        SELECT username, difficulty, password, captcha_image, captcha, flags, time, char_banned, rule1, rule5, rule9, rule17
+        FROM gameSave
+        WHERE id = ?;
+    `
+
+	row := db.QueryRow(query, id)
+
+	var username, difficulty, password, captcha string
+	var captchaImage []byte
+	var flagsJSON string
+	var time int
+	var charBannedJSON string
+	var rule1, rule5, rule9 int
+	var rule17 float32
+
+	err := row.Scan(&username, &difficulty, &password, &captchaImage, &captcha, &flagsJSON, &time, &charBannedJSON, &rule1, &rule5, &rule9, &rule17)
+	if err != nil {
+		return nil, err
+	}
+
+	captchaImageBase64 := base64.StdEncoding.EncodeToString(captchaImage)
+
+	var flags []string
+	if err := json.Unmarshal([]byte(flagsJSON), &flags); err != nil {
+		return nil, err
+	}
+
+	var charBanned []string
+	if err := json.Unmarshal([]byte(charBannedJSON), &charBanned); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"username":     username,
+		"difficulty":   difficulty,
+		"password":     password,
+		"captchaImage": captchaImageBase64,
+		"captcha":      captcha,
+		"flags":        flags,
+		"time":         time,
+		"charBanned":   charBanned,
+		"rule1":        rule1,
+		"rule5":        rule5,
+		"rule9":        rule9,
+		"rule17":       rule17,
+	}, nil
+}
+
+// Get all game saves for a user
+func getSaves(username string) ([]map[string]interface{}, error) {
+	query := `
+		SELECT id, difficulty, date, time, password
+		FROM gameSave
+		WHERE username = ?
+		ORDER BY date DESC;
+	`
+
+	rows, err := db.Query(query, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var saves []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var difficulty, date, password string
+		var time int
+
+		if err := rows.Scan(&id, &difficulty, &date, &time, &password); err != nil {
+			return nil, err
+		}
+
+		saves = append(saves, map[string]interface{}{
+			"id":         id,
+			"difficulty": difficulty,
+			"date":       date,
+			"time":       time,
+			"password":   password,
+		})
+	}
+
+	return saves, nil
+}
+
+// Delete a game save by ID
+func deleteSave(id int) error {
+	query := `DELETE FROM gameSave WHERE id = ?`
+	_, err := db.Exec(query, id)
+	return err
 }

@@ -2,6 +2,7 @@ package rules
 
 import (
 	"backend/algorithms"
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -9,8 +10,7 @@ import (
 
 // Fix the password to get a solution
 func CheatSolution(password string, rule1Var int, rule5Var int, rule8Var []string, rule9Var int, captcha string, rule13Var int, rule15Var int, rule15Value []string, rule17Var float32, length int) (string, bool, []string) {
-	password = strings.ReplaceAll(strings.ToLower(password), "cheat", "")
-
+	password = strings.ReplaceAll(password, "cheat", "")
 	state, _, _, _, _ := TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var, rule15Var, rule15Value, rule17Var, length)
 	importantAlfabets := make([]string, 0)
 	solveable := true
@@ -39,10 +39,11 @@ func CheatSolution(password string, rule1Var int, rule5Var int, rule8Var []strin
 	addCapchaAlfabets(captcha, &importantAlfabets)
 
 	// Rule 3, 7 and 9 is fufilled at the same time -- roman numerals
+	captchaRomanProduct := captchaRomanNumerals(captcha)
 	if !state[8] {
-		captchaRomanProduct := captchaRomanNumerals(captcha)
 		if captchaRomanProduct != 1 {
 			newpassword, solveable := cheatRule9WithCaptcha(password, rule9Var, captchaRomanProduct, captcha)
+			fmt.Println(solveable)
 			if !solveable {
 				return password, false, rule15Value
 
@@ -51,6 +52,15 @@ func CheatSolution(password string, rule1Var int, rule5Var int, rule8Var []strin
 			}
 		} else {
 			password = cheatRule9(password, algorithms.RegexGetRomanNumerals(password), rule9Var, captcha)
+		}
+	} else if captchaRomanProduct != 1 {
+		newpassword, solveable := cheatRule9WithCaptcha(password, rule9Var, captchaRomanProduct, captcha)
+		fmt.Println(solveable)
+		if !solveable {
+			return password, false, rule15Value
+
+		} else {
+			password = newpassword
 		}
 	}
 	addRomanNumeralsAlfabets(password, &importantAlfabets)
@@ -80,7 +90,10 @@ func CheatSolution(password string, rule1Var int, rule5Var int, rule8Var []strin
 	password, fillerAmount := cheatRule18(password, passwordLength)
 
 	// Rule 5 -- Digits add up to X
-	password = cheatRule5(password, rule5Var, captcha, currentTimeStr, leapYearStr, strconv.Itoa(passwordLength), fillerAmount)
+	password, solveable = cheatRule5(password, rule5Var, captcha, currentTimeStr, leapYearStr, strconv.Itoa(passwordLength), fillerAmount, rule13Var)
+	if !solveable {
+		return password, false, rule15Value
+	}
 
 	// Rule 18 -- password contain length
 	password, _ = cheatRule18(password, passwordLength)
@@ -90,6 +103,10 @@ func CheatSolution(password string, rule1Var int, rule5Var int, rule8Var []strin
 	}
 
 	password = addDotsAfterEmoji(password)
+
+	state2, _, _, _, _ := TestPassword(password, rule1Var, rule5Var, rule8Var, rule9Var, captcha, rule13Var, rule15Var, bannedChars, rule17Var, len(password))
+	fmt.Println(state)
+	fmt.Println(state2)
 
 	return password, true, bannedChars
 }
