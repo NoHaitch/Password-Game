@@ -16,6 +16,8 @@ import ConstraintBlock from "../components/ConstraintBlock";
 import Leaderboard from "../components/Leaderboard";
 import History from "../components/History";
 import Timer from "../components/Timer";
+import SaveGame from "../components/SaveGame";
+import LoadGame from "../components/LoadGame";
 
 function Main() {
   const navigate = useNavigate();
@@ -25,10 +27,9 @@ function Main() {
   const [highscore, setHighscore] = useState(null);
   const [timerToggle, setTimerToggle] = useState(false);
   const [password, setPassword] = useState("");
-  const [tempPassword, setTempPassword] = useState("");
   const inputRef = useRef(null);
   const timerRef = useRef(null);
-  const [HighestLevel, setHighestLevel] = useState(1);
+  const [highestLevel, setHighestLevel] = useState(1);
   const [constraints, setConstraints] = useState(Array(20).fill(false));
   const [currentGame, setCurrentGame] = useState({
     cheat: false,
@@ -52,7 +53,7 @@ function Main() {
     rule14Timeout: 0,
     rule15Var: 0,
     rule15Value: [],
-    Rule17Var: 0,
+    rule17Var: 0,
   });
 
   const oneWordCountryCodes = [
@@ -107,6 +108,8 @@ function Main() {
     lose: false,
     leaderboard: false,
     history: false,
+    save: false,
+    load: false,
   });
 
   const [resetConfirmation, setResetConfirmation] = useState(false);
@@ -135,6 +138,8 @@ function Main() {
       notReady: false,
       leaderboard: false,
       history: false,
+      save: false,
+      load: false,
     }));
   };
 
@@ -164,7 +169,7 @@ function Main() {
       rule14Timeout: 0,
       rule15Var: 0,
       rule15Value: [],
-      Rule17Var: 0,
+      rule17Var: 0,
     });
   };
 
@@ -230,6 +235,10 @@ function Main() {
         captchaValue: generateCaptcha(),
       }));
     }
+    setCurrentGame((currentGame) => ({
+      ...currentGame,
+      captchaImg: generateCaptchaImage(currentGame.captchaValue),
+    }));
   };
 
   const handleGameLose = async () => {
@@ -370,6 +379,46 @@ function Main() {
     }));
   };
 
+  const generateCaptchaImage = (text) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 100;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#f0f0f0";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = '40px "Comic Sans MS", cursive, sans-serif';
+    ctx.textBaseline = "middle";
+
+    for (let i = 0; i < text.length; i++) {
+      const x = 20 + i * 30;
+      const y = 50 + Math.random() * 10;
+      const angle = Math.random() * 0.2 - 0.1;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      ctx.fillStyle = `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(
+        Math.random() * 255
+      )}, ${Math.floor(Math.random() * 255)})`;
+
+      ctx.fillText(text[i], 0, 0);
+      ctx.restore();
+    }
+
+    for (let i = 0; i < 5; i++) {
+      ctx.strokeStyle = "#000";
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * 200, Math.random() * 100);
+      ctx.lineTo(Math.random() * 200, Math.random() * 100);
+      ctx.stroke();
+    }
+
+    return canvas.toDataURL("image/png");
+  };
+
   const procFire = () => {
     if (inputRef.current) {
       inputRef.current.blur();
@@ -392,9 +441,9 @@ function Main() {
 
   const calculateScore = (isWin) => {
     if (isWin) {
-      return HighestLevel * 1000 - timerTimer / 10 + 10000;
+      return highestLevel * 1000 - timerTimer / 10 + 10000;
     } else {
-      return Math.floor(HighestLevel * 500 - timerTimer / 50);
+      return Math.floor(highestLevel * 500 - timerTimer / 50);
     }
   };
 
@@ -411,15 +460,15 @@ function Main() {
         );
 
         if (
-          HighestLevel >= 9 &&
+          highestLevel >= 9 &&
           !constraints[8] &&
           romanNumeralsRegex.test(char)
         ) {
           return `<span style="background-color: red;">${char}</span>`;
         }
         if (
-          ((HighestLevel >= 5 && !constraints[4]) ||
-            (HighestLevel >= 17 && !constraints[16])) &&
+          ((highestLevel >= 5 && !constraints[4]) ||
+            (highestLevel >= 17 && !constraints[16])) &&
           numbersRegex.test(char)
         ) {
           return `<span style="background-color: red;">${char}</span>`;
@@ -488,14 +537,14 @@ function Main() {
             .then((data) => {
               for (let i = 0; i <= 20; i++) {
                 if (!data.results[i]) {
-                  if (i + 1 > HighestLevel) {
+                  if (i + 1 > highestLevel) {
                     setHighestLevel(i + 1);
                   }
                   break;
                 }
               }
 
-              if (HighestLevel > 20) {
+              if (highestLevel > 20) {
                 handleGameWin();
               } else {
                 setCurrentGame((currentGame) => ({
@@ -531,7 +580,7 @@ function Main() {
                   }));
                 }
 
-                if (!currentGame.rule10On && HighestLevel >= 10) {
+                if (!currentGame.rule10On && highestLevel >= 10) {
                   setCurrentGame((currentGame) => ({
                     ...currentGame,
                     rule10On: true,
@@ -540,8 +589,8 @@ function Main() {
 
                 if (
                   !currentGame.rule11On &&
-                  HighestLevel >= 11 &&
-                  !HighestLevel < 14
+                  highestLevel >= 11 &&
+                  !highestLevel < 14
                 ) {
                   setCurrentGame((currentGame) => ({
                     ...currentGame,
@@ -550,7 +599,7 @@ function Main() {
                   procFire();
                 }
 
-                if (!currentGame.rule14On && HighestLevel >= 14) {
+                if (!currentGame.rule14On && highestLevel >= 14) {
                   let newPassword = password;
                   newPassword = newPassword.replace(/🥚/, "🐔");
                   setPassword(newPassword);
@@ -574,10 +623,17 @@ function Main() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [playing, password, passwordActive, HighestLevel, currentGame]);
+  }, [playing, password, passwordActive, highestLevel, currentGame]);
 
   useEffect(() => {
     if (difficulty !== "None") {
+      if (difficulty === "easy") {
+        setDifficultyStyle("text-green-400");
+      } else if (difficulty === "medium") {
+        setDifficultyStyle("text-blue-400");
+      } else {
+        setDifficultyStyle("text-red-400");
+      }
       handleGameStart();
     }
   }, [difficulty]);
@@ -797,7 +853,7 @@ function Main() {
                     className="focus:outline-none text-white bg-yellow-600 hover:bg-yellow-700 focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 focus:ring-yellow-900"
                     onClick={() => {
                       resetNonGamePopup();
-                      setPopup((popup) => ({ ...popup, notReady: true }));
+                      setPopup((popup) => ({ ...popup, save: true }));
                     }}
                   >
                     Save
@@ -807,7 +863,7 @@ function Main() {
                     className="focus:outline-none text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 bg-red-600 hover:bg-red-700 focus:ring-red-900"
                     onClick={() => {
                       resetNonGamePopup();
-                      setPopup((popup) => ({ ...popup, notReady: true }));
+                      setPopup((popup) => ({ ...popup, load: true }));
                     }}
                   >
                     Load
@@ -868,6 +924,29 @@ function Main() {
           <div className="absolute flex top-0 px-32 w-full h-screen justify-center items-center">
             <div className="w-full h-full bg-black opacity-45"></div>
             <div className="absolute w-[400px] h-[150px] bg-[#1E1F20] rounded-md flex flex-col items-center p-2 text-white">
+              <button
+                type="button"
+                className="left-2 top-2 text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => {
+                  setNewGameDialog(false);
+                }}
+              >
+                <svg
+                  className="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
               <h1 className="mt-4">Choose a difficulty</h1>
               <div className="flex flex-row m-4">
                 <button
@@ -1024,91 +1103,91 @@ function Main() {
               <p
                 className={twMerge(
                   "text-white absolute mr-[-550px] mb-[-20px] text-left",
-                  HighestLevel >= 19 && !constraints[18] ? "bg-red-400" : ""
+                  highestLevel >= 19 && !constraints[18] ? "bg-red-400" : ""
                 )}
               >
                 {count}
               </p>
             </div>
             <>
-              {1 <= HighestLevel && !constraints[0] && (
+              {1 <= highestLevel && !constraints[0] && (
                 <ConstraintBlock
                   ruleNumber="1"
                   state={constraints[0]}
                   data={currentGame}
                 />
               )}
-              {2 <= HighestLevel && !constraints[1] && (
+              {2 <= highestLevel && !constraints[1] && (
                 <ConstraintBlock
                   ruleNumber="2"
                   state={constraints[1]}
                   data={currentGame}
                 />
               )}
-              {3 <= HighestLevel && !constraints[2] && (
+              {3 <= highestLevel && !constraints[2] && (
                 <ConstraintBlock
                   ruleNumber="3"
                   state={constraints[2]}
                   data={currentGame}
                 />
               )}
-              {4 <= HighestLevel && !constraints[3] && (
+              {4 <= highestLevel && !constraints[3] && (
                 <ConstraintBlock
                   ruleNumber="4"
                   state={constraints[3]}
                   data={currentGame}
                 />
               )}
-              {5 <= HighestLevel && !constraints[4] && (
+              {5 <= highestLevel && !constraints[4] && (
                 <ConstraintBlock
                   ruleNumber="5"
                   state={constraints[4]}
                   data={currentGame}
                 />
               )}
-              {6 <= HighestLevel && !constraints[5] && (
+              {6 <= highestLevel && !constraints[5] && (
                 <ConstraintBlock
                   ruleNumber="6"
                   state={constraints[5]}
                   data={currentGame}
                 />
               )}
-              {7 <= HighestLevel && !constraints[6] && (
+              {7 <= highestLevel && !constraints[6] && (
                 <ConstraintBlock
                   ruleNumber="7"
                   state={constraints[6]}
                   data={currentGame}
                 />
               )}
-              {8 <= HighestLevel && !constraints[7] && (
+              {8 <= highestLevel && !constraints[7] && (
                 <ConstraintBlock
                   ruleNumber="8"
                   state={constraints[7]}
                   data={currentGame}
                 />
               )}
-              {9 <= HighestLevel && !constraints[8] && (
+              {9 <= highestLevel && !constraints[8] && (
                 <ConstraintBlock
                   ruleNumber="9"
                   state={constraints[8]}
                   data={currentGame}
                 />
               )}
-              {10 <= HighestLevel && !constraints[9] && (
+              {10 <= highestLevel && !constraints[9] && (
                 <ConstraintBlock
                   ruleNumber="10"
                   state={constraints[9]}
                   data={currentGame}
                 />
               )}
-              {11 <= HighestLevel && !constraints[10] && (
+              {11 <= highestLevel && !constraints[10] && (
                 <ConstraintBlock
                   ruleNumber="11"
                   state={constraints[10]}
                   data={currentGame}
                 />
               )}
-              {12 <= HighestLevel && !constraints[11] && (
+              {12 <= highestLevel && !constraints[11] && (
                 <ConstraintBlock
                   ruleNumber="12"
                   state={constraints[11]}
@@ -1119,21 +1198,21 @@ function Main() {
                   initialCaptchaImage={currentGame.captchaImg}
                 />
               )}
-              {13 <= HighestLevel && !constraints[12] && (
+              {13 <= highestLevel && !constraints[12] && (
                 <ConstraintBlock
                   ruleNumber="13"
                   state={constraints[12]}
                   data={currentGame}
                 />
               )}
-              {14 <= HighestLevel && !constraints[13] && (
+              {14 <= highestLevel && !constraints[13] && (
                 <ConstraintBlock
                   ruleNumber="14"
                   state={constraints[13]}
                   data={currentGame}
                 />
               )}
-              {15 <= HighestLevel && !constraints[14] && (
+              {15 <= highestLevel && !constraints[14] && (
                 <ConstraintBlock
                   ruleNumber="15"
                   state={constraints[14]}
@@ -1142,35 +1221,35 @@ function Main() {
                   initialSelection={currentGame.rule15Value}
                 />
               )}
-              {16 <= HighestLevel && !constraints[15] && (
+              {16 <= highestLevel && !constraints[15] && (
                 <ConstraintBlock
                   ruleNumber="16"
                   state={constraints[15]}
                   data={currentGame}
                 />
               )}
-              {17 <= HighestLevel && !constraints[16] && (
+              {17 <= highestLevel && !constraints[16] && (
                 <ConstraintBlock
                   ruleNumber="17"
                   state={constraints[16]}
                   data={currentGame}
                 />
               )}
-              {18 <= HighestLevel && !constraints[17] && (
+              {18 <= highestLevel && !constraints[17] && (
                 <ConstraintBlock
                   ruleNumber="18"
                   state={constraints[17]}
                   data={currentGame}
                 />
               )}
-              {19 <= HighestLevel && !constraints[18] && (
+              {19 <= highestLevel && !constraints[18] && (
                 <ConstraintBlock
                   ruleNumber="19"
                   state={constraints[18]}
                   data={currentGame}
                 />
               )}
-              {20 <= HighestLevel && !constraints[19] && (
+              {20 <= highestLevel && !constraints[19] && (
                 <ConstraintBlock
                   ruleNumber="20"
                   state={constraints[19]}
@@ -1179,84 +1258,84 @@ function Main() {
               )}
             </>
             <div className="flex flex-col-reverse">
-              {1 <= HighestLevel && constraints[0] && (
+              {1 <= highestLevel && constraints[0] && (
                 <ConstraintBlock
                   ruleNumber="1"
                   state={constraints[0]}
                   data={currentGame}
                 />
               )}
-              {2 <= HighestLevel && constraints[1] && (
+              {2 <= highestLevel && constraints[1] && (
                 <ConstraintBlock
                   ruleNumber="2"
                   state={constraints[1]}
                   data={currentGame}
                 />
               )}
-              {3 <= HighestLevel && constraints[2] && (
+              {3 <= highestLevel && constraints[2] && (
                 <ConstraintBlock
                   ruleNumber="3"
                   state={constraints[2]}
                   data={currentGame}
                 />
               )}
-              {4 <= HighestLevel && constraints[3] && (
+              {4 <= highestLevel && constraints[3] && (
                 <ConstraintBlock
                   ruleNumber="4"
                   state={constraints[3]}
                   data={currentGame}
                 />
               )}
-              {5 <= HighestLevel && constraints[4] && (
+              {5 <= highestLevel && constraints[4] && (
                 <ConstraintBlock
                   ruleNumber="5"
                   state={constraints[4]}
                   data={currentGame}
                 />
               )}
-              {6 <= HighestLevel && constraints[5] && (
+              {6 <= highestLevel && constraints[5] && (
                 <ConstraintBlock
                   ruleNumber="6"
                   state={constraints[5]}
                   data={currentGame}
                 />
               )}
-              {7 <= HighestLevel && constraints[6] && (
+              {7 <= highestLevel && constraints[6] && (
                 <ConstraintBlock
                   ruleNumber="7"
                   state={constraints[6]}
                   data={currentGame}
                 />
               )}
-              {8 <= HighestLevel && constraints[7] && (
+              {8 <= highestLevel && constraints[7] && (
                 <ConstraintBlock
                   ruleNumber="8"
                   state={constraints[7]}
                   data={currentGame}
                 />
               )}
-              {9 <= HighestLevel && constraints[8] && (
+              {9 <= highestLevel && constraints[8] && (
                 <ConstraintBlock
                   ruleNumber="9"
                   state={constraints[8]}
                   data={currentGame}
                 />
               )}
-              {10 <= HighestLevel && constraints[9] && (
+              {10 <= highestLevel && constraints[9] && (
                 <ConstraintBlock
                   ruleNumber="10"
                   state={constraints[9]}
                   data={currentGame}
                 />
               )}
-              {11 <= HighestLevel && constraints[10] && (
+              {11 <= highestLevel && constraints[10] && (
                 <ConstraintBlock
                   ruleNumber="11"
                   state={constraints[10]}
                   data={currentGame}
                 />
               )}
-              {12 <= HighestLevel && constraints[11] && (
+              {12 <= highestLevel && constraints[11] && (
                 <ConstraintBlock
                   ruleNumber="12"
                   state={constraints[11]}
@@ -1267,21 +1346,21 @@ function Main() {
                   initialCaptchaImage={currentGame.captchaImg}
                 />
               )}
-              {13 <= HighestLevel && constraints[12] && (
+              {13 <= highestLevel && constraints[12] && (
                 <ConstraintBlock
                   ruleNumber="13"
                   state={constraints[12]}
                   data={currentGame}
                 />
               )}
-              {14 <= HighestLevel && constraints[13] && (
+              {14 <= highestLevel && constraints[13] && (
                 <ConstraintBlock
                   ruleNumber="14"
                   state={constraints[13]}
                   data={currentGame}
                 />
               )}
-              {15 <= HighestLevel && constraints[14] && (
+              {15 <= highestLevel && constraints[14] && (
                 <ConstraintBlock
                   ruleNumber="15"
                   state={constraints[14]}
@@ -1290,35 +1369,35 @@ function Main() {
                   initialSelection={currentGame.rule15Value}
                 />
               )}
-              {16 <= HighestLevel && constraints[15] && (
+              {16 <= highestLevel && constraints[15] && (
                 <ConstraintBlock
                   ruleNumber="16"
                   state={constraints[15]}
                   data={currentGame}
                 />
               )}
-              {17 <= HighestLevel && constraints[16] && (
+              {17 <= highestLevel && constraints[16] && (
                 <ConstraintBlock
                   ruleNumber="17"
                   state={constraints[16]}
                   data={currentGame}
                 />
               )}
-              {18 <= HighestLevel && constraints[17] && (
+              {18 <= highestLevel && constraints[17] && (
                 <ConstraintBlock
                   ruleNumber="18"
                   state={constraints[17]}
                   data={currentGame}
                 />
               )}
-              {19 <= HighestLevel && constraints[18] && (
+              {19 <= highestLevel && constraints[18] && (
                 <ConstraintBlock
                   ruleNumber="19"
                   state={constraints[18]}
                   data={currentGame}
                 />
               )}
-              {20 <= HighestLevel && constraints[19] && (
+              {20 <= highestLevel && constraints[19] && (
                 <ConstraintBlock
                   ruleNumber="20"
                   state={constraints[19]}
@@ -1523,6 +1602,91 @@ function Main() {
                 </svg>
               </button>
               <History />
+            </div>
+          </div>
+        )}
+
+        {popup.save && (
+          <div className="fixed top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[60%]">
+              <button
+                type="button"
+                className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => {
+                  setPopup((popup) => ({ ...popup, save: false }));
+                }}
+              >
+                <svg
+                  className="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+              <SaveGame
+                username={user?.email}
+                currentGame={currentGame}
+                difficulty={difficulty}
+                timerTimer={timerTimer}
+                password={password}
+                playing={playing}
+                generateCaptcha={generateCaptcha}
+                generateCaptchaImage={generateCaptchaImage}
+                highestLevel={highestLevel}
+              />
+            </div>
+          </div>
+        )}
+
+        {popup.load && (
+          <div className="fixed top-0 left-0 bg-black bg-opacity-70 z-50 pl-64 w-full h-screen flex justify-center items-center">
+            <div className="bg-[#2e0d3f] rounded-lg p-4 text-white flex flex-col text-center w-[60%]">
+              <button
+                type="button"
+                className="text-gray-400 bg-transparent rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center hover:bg-gray-600 hover:text-white absolute"
+                onClick={() => {
+                  setPopup((popup) => ({ ...popup, load: false }));
+                }}
+              >
+                <svg
+                  className="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+              <LoadGame
+                username={user?.email}
+                setPlaying={(playing) => setPlaying(playing)}
+                setDifficulty={(difficulty) => setDifficulty(difficulty)}
+                setPassword={(password) => {
+                  setPassword(password);
+                  setTimeout(() => {
+                    setPassword(password);
+                  }, 50);
+                }}
+                setCurrentGame={setCurrentGame}
+                currentGame={currentGame}
+                setHighestLevel={setHighestLevel}
+              />
             </div>
           </div>
         )}
