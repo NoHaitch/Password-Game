@@ -7,7 +7,7 @@
   <h1 align="center">Password Game</h1>
 
   <p align="center">
-    <h4> Password Game Web Application using react tailwind and golang</h4>
+    <h4>Password Game Web Application using react tailwind and golang with firebase authentication</h4>
     <br/>
     <a href="https://github.com/NoHaitch/Password-Game/issues">Report Bug</a>
     ·
